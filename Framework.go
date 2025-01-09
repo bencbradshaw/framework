@@ -3,31 +3,21 @@ package framework
 import (
 	"flag"
 	"fmt"
-	"framework/esbuild"
-	"framework/events"
-	"framework/middleware"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/evanw/esbuild/pkg/api"
 	"github.com/flosch/pongo2"
-	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-)
 
-func initPG() (*gorm.DB, error) {
-	dsn := "host=" + os.Getenv("host") +
-		" user=" + os.Getenv("user") +
-		" password=" + os.Getenv("password") +
-		" dbname=" + os.Getenv("dbname") +
-		" port=" + os.Getenv("port") +
-		" sslmode=disable application_name=novaopus"
-	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
-}
+	"framework/esbuild"
+	"framework/events"
+	"framework/internal"
+	"framework/middleware"
+)
 
 type RouterSetupFunc struct {
 	BasePath string
@@ -58,24 +48,21 @@ func Render(w http.ResponseWriter, name string, data pongo2.Context) {
 	w.Write([]byte(out))
 }
 
-func Init(params InitParams) (http.Handler, *gorm.DB) {
-	err := godotenv.Load()
+func Init(params InitParams) http.Handler {
+	_, filename, _, ok := runtime.Caller(1)
+	if !ok {
+		log.Fatalf("Error determining current file directory")
+	}
+	currentDir := filepath.Dir(filename)
+
+	err := internal.LoadEnvFile(filepath.Join(currentDir, ".env"))
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	var db *gorm.DB
-	if params.DB == nil {
-		db, err = initPG()
-		if err != nil {
-			log.Fatalf("Error connecting to database: %v", err)
-		}
+	if err != nil {
+		log.Fatalf("Error connecting to database: %v", err)
 	}
-
-	// if err := db.AutoMigrate(&entities.User{}, &entities.Beacon{}, &entities.Media{}, &entities.Depth{}); err != nil {
-	// 	log.Fatalf("Failed to auto migrate: %v", err)
-	// }
-	// db.Debug()
 
 	devMode := params.IsDevMode
 	if !params.IsDevMode {
@@ -131,10 +118,10 @@ func Init(params InitParams) (http.Handler, *gorm.DB) {
 	}
 
 	for _, setupConfig := range params.RouterSetupFuncs {
-		router := setupConfig.Handler(mux, db, devMode)
+		router := setupConfig.Handler(mux, params.DB, devMode)
 		mux.Handle(setupConfig.BasePath, router)
 	}
 
 	muxWithLogging := middleware.LoggingMiddleware(mux)
-	return muxWithLogging, db
+	return muxWithLogging
 }

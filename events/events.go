@@ -6,8 +6,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/fsnotify/fsnotify"
 )
 
 var MessageChan = make(chan string)
@@ -24,23 +22,23 @@ func EventStream(w http.ResponseWriter, r *http.Request) {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
-	// Create a new file watcher
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer watcher.Close()
+	// // Create a new file watcher
+	// watcher, err := fsnotify.NewWatcher()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer watcher.Close()
 
-	// Add the directory to be watched
-	err = watcher.Add("templates")
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Add the directory to be watched
-	err = watcher.Add("static")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// // Add the directory to be watched
+	// err = watcher.Add("templates")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// // Add the directory to be watched
+	// err = watcher.Add("static")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 	// Send initial "connected" message
 	msg := "event: connected\ndata: connected\n\n"
 	fmt.Printf("writing connected message\n")
@@ -54,18 +52,18 @@ func EventStream(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
-		case event := <-watcher.Events:
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				msg := "event: reload\ndata: reload\n\n"
-				log.Printf("writing reload message")
-				_, writeErr := fmt.Fprint(w, msg)
-				if writeErr != nil {
-					// Client has likely disconnected, log error and exit
-					log.Printf("Error writing to client: %v", writeErr)
-					return
-				}
-				w.(http.Flusher).Flush()
-			}
+		// case event := <-watcher.Events:
+		// 	if event.Op&fsnotify.Write == fsnotify.Write {
+		// 		msg := "event: reload\ndata: reload\n\n"
+		// 		log.Printf("writing reload message")
+		// 		_, writeErr := fmt.Fprint(w, msg)
+		// 		if writeErr != nil {
+		// 			// Client has likely disconnected, log error and exit
+		// 			log.Printf("Error writing to client: %v", writeErr)
+		// 			return
+		// 		}
+		// 		w.(http.Flusher).Flush()
+		// 	}
 		case t := <-ticker.C:
 			msg := fmt.Sprintf("event: time\ndata: The server time is: %v\n\n", t)
 			log.Printf("writing message")
@@ -85,8 +83,8 @@ func EventStream(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			w.(http.Flusher).Flush()
-		case err := <-watcher.Errors:
-			log.Printf("Watcher error: %v", err)
+		// case err := <-watcher.Errors:
+		// 	log.Printf("Watcher error: %v", err)
 		case <-ctx.Done():
 			log.Println("Client disconnected, stopping eventStream")
 			return
