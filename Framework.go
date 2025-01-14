@@ -11,12 +11,12 @@ import (
 	"strings"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/flosch/pongo2"
 
 	"framework/esbuild"
 	"framework/events"
 	"framework/internal"
 	"framework/middleware"
+	"framework/twig"
 )
 
 type RouterSetupFunc struct {
@@ -33,19 +33,14 @@ type InitParams struct {
 	AutoRegisterTemplateRoutes bool
 }
 
-func Render(w http.ResponseWriter, name string, data pongo2.Context) {
-	tpl, err := pongo2.FromFile("templates/" + name)
+func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
+	result, err := twig.Render2("templates/"+name, data)
 	if err != nil {
-		http.Error(w, "Template not found: "+name, http.StatusInternalServerError)
-		return
-	}
-	out, err := tpl.Execute(data)
-	if err != nil {
-		http.Error(w, "Template execution error: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(out))
+	w.Write([]byte(result))
 }
 
 func Init(params InitParams) http.Handler {
@@ -99,7 +94,11 @@ func Init(params InitParams) http.Handler {
 					routePath += "/"
 				}
 				mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
-					Render(w, tmplName, pongo2.Context{"title": tmplName})
+					Render(
+						w,
+						tmplName,
+						map[string]interface{}{"title": tmplName},
+					)
 				})
 				fmt.Printf("Registered route for template: %s -> %s\n", tmplName, routePath)
 			}
@@ -113,7 +112,11 @@ func Init(params InitParams) http.Handler {
 		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			Render(w, "index.twig", pongo2.Context{"title": "Home"})
+			Render(
+				w,
+				"index.twig",
+				map[string]interface{}{"title": "home"},
+			)
 		})
 	}
 
