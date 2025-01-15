@@ -34,7 +34,7 @@ type InitParams struct {
 }
 
 func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
-	result, err := twig.Render2("templates/"+name, data)
+	result, err := twig.Render(name, data)
 	if err != nil {
 		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
