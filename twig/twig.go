@@ -128,11 +128,11 @@ func parseTemplate(content string) (string, []string, map[string]string) {
 	}
 
 	// Regex for detecting blocks
-	blockDefRegex := regexp.MustCompile(`{% block (\w+) %}(.*?)\{% endblock %}`)
+	blockDefRegex := regexp.MustCompile(`(?s){% block (\w+) %}(.*?){% endblock %}`)
 	blockMatches := blockDefRegex.FindAllStringSubmatch(content, -1)
 	for _, match := range blockMatches {
 		if len(match) > 2 {
-			blocks[match[1]] = match[2]
+			blocks[match[1]] = strings.TrimSpace(match[2])
 		}
 	}
 
@@ -142,24 +142,20 @@ func parseTemplate(content string) (string, []string, map[string]string) {
 func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data map[string]interface{}) (string, error) {
 	var finalContent strings.Builder
 
-	// Helper function to render a specific template
 	var renderTemplate func(path string, parentBlocks map[string]string) (string, map[string]string, error)
 
 	renderTemplate = func(path string, parentBlocks map[string]string) (string, map[string]string, error) {
-
 		templateInfo, exists := analysis[path]
-		if strings.Contains(analysis[path].Path, "templates/") {
-			templateInfo, exists = analysis[path]
-		} else {
-			templateInfo, exists = analysis["templates/"+path]
-		}
 		if !exists {
 			return "", nil, fmt.Errorf("template not found: %s", path)
 		}
 
+		// Always handle includes and replace their placeholders with actual content
+		content := replaceIncludes(templateInfo.Path, templateInfo, analysis)
+
 		if templateInfo.Extends != "" { // Template extends a parent template
 			// First render the parent template to get its content and blocks
-			parentContent, parentBlocks, err := renderTemplate(templateInfo.Extends, nil)
+			parentContent, parentBlocks, err := renderTemplate(filepath.Join(templatesDir, templateInfo.Extends), nil)
 			if err != nil {
 				return "", nil, err
 			}
@@ -168,9 +164,7 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 			mergedContent := mergeBlocks(parentContent, parentBlocks, templateInfo.Blocks)
 			return mergedContent, templateInfo.Blocks, nil
 		} else {
-			// Base case: no parent, render this template directly
-			content := replaceIncludes(templateInfo.Path, templateInfo, analysis)
-
+			// Base case: merges blocks without parent blocks
 			completeContent := mergeBlocks(content, parentBlocks, templateInfo.Blocks)
 			return completeContent, templateInfo.Blocks, nil
 		}
@@ -190,14 +184,20 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 }
 
 func replaceIncludes(templatePath string, tInfo TemplateInfo, analysis map[string]TemplateInfo) string {
+	log.Printf("Replacing includes in template: %s\n", templatePath)
+	log.Printf("Includes: %v\n", tInfo.Includes)
 	content := readFileContent(templatePath)
 
 	// Replace includes with actual content
 	for _, include := range tInfo.Includes {
+		log.Printf("Processing include: %s\n", include)
 		includePath := filepath.Join(filepath.Dir(templatePath), include)
 		includedContent := readFileContent(includePath)
-		includeTag := fmt.Sprintf(`{% include "%s" %}`, include)
+		log.Printf("Included content: %v\n", includedContent)
+		includeTag := `{%` + ` include ` + `"` + include + `"` + ` %}`
+		log.Printf("include tag: %s\n", includeTag)
 		content = strings.Replace(content, includeTag, includedContent, 1)
+		log.Printf("Content after include: %v\n", content)
 	}
 	return content
 }
