@@ -29,7 +29,6 @@ directory structure:
 .
 ├── app
 │   └── src/index.ts // default entry point for esbuild
-├── entities // default location for GORM database entities
 ├── routes // default go http handlers
 ├── templates // twig/html templates - auto register with `name.route.twig`
 ├── static // git ignored static files - esbuild result goes here
@@ -39,7 +38,6 @@ directory structure:
   - html routes served from /templates
   - static files served from /static
   - .js, .ts, .jsx, dev bundled and served from /static/ with autoreload through esbuild
-  - GORM entities in /entities added into container for each route
 
 2. Extend and Override defaults
 
@@ -54,8 +52,9 @@ import (
 
 main() {
    mux, db := framework.Init({
+        isDevMode: true, // auto reload ts/js changes
+        esbuildOptions: {}, // override default esbuild options
         routes: [],
-        esbuildOptions: {},
         DB: {},
         container: {},
         templateDir: "",
