@@ -2,7 +2,6 @@ package twig
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -187,7 +186,6 @@ func replaceIncludes(templatePath string, tInfo TemplateInfo, analysis map[strin
 }
 
 func readFileContent(path string) string {
-	fmt.Println("Reading file at path", path)
 	raw, _ := os.ReadFile(path)
 	return string(raw)
 }
@@ -227,7 +225,5 @@ func cleanAndCheck(content string) (string, error) {
 			content = strings.Replace(content, block[0], "", -1)
 		}
 	}
-	log.Println("Final Cleaned Content:")
-	log.Println(content)
 	return content, nil
 }
