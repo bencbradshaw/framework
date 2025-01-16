@@ -18,7 +18,7 @@ var templatesDir = "./templates"
 
 func Render(templatePath string, data map[string]interface{}) (string, error) {
 	fullTemplatePath := filepath.Join(templatesDir, templatePath)
-	log.Printf("fullTemplatePath: ", fullTemplatePath)
+	fmt.Println("fullTemplatePath: ", fullTemplatePath)
 	// Phase 1: Analyze Templates
 	templateAnalysis, err := analyzeTemplates(fullTemplatePath)
 	if err != nil {
@@ -41,21 +41,22 @@ func Render(templatePath string, data map[string]interface{}) (string, error) {
 }
 
 type TemplateInfo struct {
-	Path     string
-	Extends  string
-	Includes []string
-	Blocks   map[string]string
+	Path          string
+	Extends       string
+	Includes      []string
+	DefinedBlocks map[string]string // Where we store block definitions
+	UsedBlocks    map[string]string // Where blocks are used
+	EntryTemplate string            // Path to the original entry template
 }
 
 func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
-
 	templateAnalysis := make(map[string]TemplateInfo)
 
 	// Define a recursive function to analyze each template file
-	var analyzeTemplate func(path string) error
+	var analyzeTemplate func(path string, isEntry bool) error
 
-	analyzeTemplate = func(path string) error {
-		log.Printf("Analyzing template at path: %s\n", path)
+	analyzeTemplate = func(path string, isEntry bool) error {
+		fmt.Printf("Analyzing template at path: %s\n", path)
 		if _, exists := templateAnalysis[path]; exists {
 			// Avoid reanalyzing a template that has already been processed
 			return nil
@@ -67,21 +68,29 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 		}
 
 		content := string(raw)
-		extends, includes, blocks := parseTemplate(content)
+		extends, includes, definedBlocks, usedBlocks := parseTemplate(content)
 
+		// Create a new TemplateInfo instance
 		templateInfo := TemplateInfo{
-			Path:     path,
-			Extends:  extends,
-			Includes: includes,
-			Blocks:   blocks,
+			Path:          path,
+			Extends:       extends,
+			Includes:      includes,
+			DefinedBlocks: definedBlocks,
+			UsedBlocks:    usedBlocks,
 		}
 
+		// If this is the entry template, set the EntryTemplate field
+		if isEntry {
+			templateInfo.EntryTemplate = path
+		}
+
+		// Store the TemplateInfo struct back into the map
 		templateAnalysis[path] = templateInfo
 
 		// Recursively analyze included templates and parent templates
 		for _, include := range includes {
 			includePath := filepath.Join(templatesDir, include)
-			err := analyzeTemplate(includePath)
+			err := analyzeTemplate(includePath, false) // Entry marker false for includes
 			if err != nil {
 				return err
 			}
@@ -89,7 +98,7 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 
 		if extends != "" {
 			parentPath := filepath.Join(templatesDir, extends)
-			err := analyzeTemplate(parentPath)
+			err := analyzeTemplate(parentPath, false) // Entry marker false for extends
 			if err != nil {
 				return err
 			}
@@ -99,7 +108,7 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 	}
 
 	// Start the analysis from the full template path
-	err := analyzeTemplate(templatePath)
+	err := analyzeTemplate(templatePath, true) // Mark the initial template as the entry
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +116,11 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 	return templateAnalysis, nil
 }
 
-func parseTemplate(content string) (string, []string, map[string]string) {
+func parseTemplate(content string) (string, []string, map[string]string, map[string]string) {
 	var extends string
 	var includes []string
-	blocks := make(map[string]string)
+	definedBlocks := make(map[string]string)
+	usedBlocks := make(map[string]string)
 
 	// Regex for detecting extends
 	extendsRegex := regexp.MustCompile(`{% extends "([^"]+)" %}`)
@@ -127,16 +137,27 @@ func parseTemplate(content string) (string, []string, map[string]string) {
 		}
 	}
 
-	// Regex for detecting blocks
+	// Regex for detecting block definitions and their usages
 	blockDefRegex := regexp.MustCompile(`(?s){% block (\w+) %}(.*?){% endblock %}`)
 	blockMatches := blockDefRegex.FindAllStringSubmatch(content, -1)
 	for _, match := range blockMatches {
 		if len(match) > 2 {
-			blocks[match[1]] = strings.TrimSpace(match[2])
+			blockName := match[1]
+			definedBlocks[blockName] = strings.TrimSpace(match[2]) // Store the definition
 		}
 	}
 
-	return extends, includes, blocks
+	// Regex for detecting block usages
+	blockUsageRegex := regexp.MustCompile(`{{\s*block\("(\w+)"\)\s*}}`)
+	usageMatches := blockUsageRegex.FindAllStringSubmatch(content, -1)
+	for _, match := range usageMatches {
+		if len(match) > 1 {
+			blockName := match[1]
+			usedBlocks[blockName] = match[0] // Keep the original usage for later replacement
+		}
+	}
+
+	return extends, includes, definedBlocks, usedBlocks
 }
 
 func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data map[string]interface{}) (string, error) {
@@ -150,23 +171,30 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 			return "", nil, fmt.Errorf("template not found: %s", path)
 		}
 
-		// Always handle includes and replace their placeholders with actual content
+		// Replace includes first
 		content := replaceIncludes(templateInfo.Path, templateInfo, analysis)
 
-		if templateInfo.Extends != "" { // Template extends a parent template
-			// First render the parent template to get its content and blocks
+		// Handle block usages before we check for inheritance
+		for blockName, usage := range templateInfo.UsedBlocks {
+			if definedContent, exists := templateInfo.DefinedBlocks[blockName]; exists {
+				content = strings.ReplaceAll(content, usage, definedContent)
+			}
+		}
+
+		if templateInfo.Extends != "" {
+			// Render the parent template first
 			parentContent, parentBlocks, err := renderTemplate(filepath.Join(templatesDir, templateInfo.Extends), nil)
 			if err != nil {
 				return "", nil, err
 			}
 
-			// Merge blocks from this template (child) with the parent's blocks
-			mergedContent := mergeBlocks(parentContent, parentBlocks, templateInfo.Blocks)
-			return mergedContent, templateInfo.Blocks, nil
+			// Merge the current content with the parent's content
+			mergedContent := mergeBlocks(parentContent, parentBlocks, templateInfo.DefinedBlocks)
+			return mergedContent, templateInfo.DefinedBlocks, nil
 		} else {
-			// Base case: merges blocks without parent blocks
-			completeContent := mergeBlocks(content, parentBlocks, templateInfo.Blocks)
-			return completeContent, templateInfo.Blocks, nil
+			// In the base case, merge the final content with any parent blocks
+			completeContent := mergeBlocks(content, parentBlocks, templateInfo.DefinedBlocks)
+			return completeContent, templateInfo.DefinedBlocks, nil
 		}
 	}
 
@@ -176,34 +204,44 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 		return "", err
 	}
 
-	// Replace variables in the final content
+	// Handle variable replacements in the content
 	content = handleVars(content, data)
+
+	// Final pass to replace blocks using the EntryTemplate
+	entryTemplateInfo := analysis[templatePath]
+	if entryTemplateInfo.EntryTemplate != "" {
+		// Replace all block placeholders based on the entry template
+		for blockName, definedContent := range entryTemplateInfo.DefinedBlocks {
+			placeholder := fmt.Sprintf("{%% block %s %%}{%% endblock %%}", blockName)
+			content = strings.ReplaceAll(content, placeholder, definedContent)
+		}
+	}
 
 	finalContent.WriteString(content)
 	return finalContent.String(), nil
 }
 
 func replaceIncludes(templatePath string, tInfo TemplateInfo, analysis map[string]TemplateInfo) string {
-	log.Printf("Replacing includes in template: %s\n", templatePath)
-	log.Printf("Includes: %v\n", tInfo.Includes)
+	fmt.Println("Replacing includes in template:", templatePath)
+	fmt.Println("Includes:", tInfo.Includes)
 	content := readFileContent(templatePath)
 
 	// Replace includes with actual content
 	for _, include := range tInfo.Includes {
-		log.Printf("Processing include: %s\n", include)
+		fmt.Println("Processing include", include)
 		includePath := filepath.Join(filepath.Dir(templatePath), include)
 		includedContent := readFileContent(includePath)
-		log.Printf("Included content: %v\n", includedContent)
+		fmt.Println("Included content", includedContent)
 		includeTag := `{%` + ` include ` + `"` + include + `"` + ` %}`
-		log.Printf("include tag: %s\n", includeTag)
+		fmt.Println("include tag", includeTag)
 		content = strings.Replace(content, includeTag, includedContent, 1)
-		log.Printf("Content after include: %v\n", content)
+		fmt.Println("Content after include", content)
 	}
 	return content
 }
 
 func readFileContent(path string) string {
-	log.Printf("Reading file at path: %s\n", path)
+	fmt.Println("Reading file at path", path)
 	raw, _ := os.ReadFile(path)
 	return string(raw)
 }
@@ -214,26 +252,36 @@ func mergeBlocks(content string, parentBlocks, childBlocks map[string]string) st
 	// Iterate over all block definitions in the content
 	matches := blockDefRegex.FindAllStringSubmatch(content, -1)
 	for _, match := range matches {
+		// Assuming match[2] contains the block type
+		blockType := match[2]
+		if blockType != "UsedBlock" {
+			continue
+		}
+
 		blockName := match[1]
 		blockPlaceholder := match[0]
-
+		println("blockName: ", blockName)
+		println("blockPlaceholder: ", blockPlaceholder)
 		if childContent, exists := childBlocks[blockName]; exists {
 			// Replace the entire block definition with the child's content
+			println("block child content ", childContent)
 			content = strings.Replace(content, blockPlaceholder, childContent, 1)
 		} else if parentContent, exists := parentBlocks[blockName]; exists {
 			// If no child block, use parent's block content
+			println("block parent content ", parentContent)
 			content = strings.Replace(content, blockPlaceholder, parentContent, 1)
 		}
 	}
+	println("RETURN BLOCK ", content)
 	return content
 }
 
 func handleVars(content string, data map[string]interface{}) string {
-	log.Printf("HANDLEVARS. content")
+	fmt.Println("HANDLEVARS. content")
 	for key, value := range data {
 		placeholder := "{{ " + key + " }}"
 		content = strings.ReplaceAll(content, placeholder, fmt.Sprintf("%v", value))
-		log.Printf("Replacing variable %s with %v\n", key, value)
+		fmt.Println("Replacing variable %s with %v\n", key, value)
 	}
 	return content
 }
@@ -244,7 +292,11 @@ func cleanAndCheck(content string) (string, error) {
 	unresolvedBlocks := unresolvedBlockRegex.FindAllStringSubmatch(content, -1)
 
 	if len(unresolvedBlocks) > 0 {
-		return "", fmt.Errorf("unresolved blocks found in template: %v", unresolvedBlocks)
+		fmt.Println("unresolved blocks found in template: %v", unresolvedBlocks)
+		// now replace all of them with empty strings
+		for _, block := range unresolvedBlocks {
+			content = strings.Replace(content, block[0], "", -1)
+		}
 	}
 
 	// Step 2: (Optional) Final cleanup operations can be added here, like ensuring newline consistency, trimming, etc.
