@@ -123,6 +123,7 @@ func Init(params InitParams) http.Handler {
 	for _, setupConfig := range params.RouterSetupFuncs {
 		router := setupConfig.Handler(mux, params.DB, devMode)
 		mux.Handle(setupConfig.BasePath, router)
+		print("Registered router at: " + setupConfig.BasePath + "\n")
 	}
 
 	muxWithLogging := middleware.LoggingMiddleware(mux)
