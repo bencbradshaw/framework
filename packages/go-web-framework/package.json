@@ -11,13 +11,11 @@
   "exports": {
     "./all": {
       "types": "./index.d.ts",
-      "import": "./index.js",
-      "default": "./index.js"
+      "import": "./index.js"
     },
     "./*.js": {
       "types": "./lib/*.d.ts",
-      "import": "./lib/*.js",
-      "default": "./lib/*.js"
+      "import": "./lib/*.js"
     }
   },
   "scripts": {
@@ -28,5 +26,8 @@
   "license": "ISC",
   "dependencies": {
     "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18.17.1"
   }
 }
