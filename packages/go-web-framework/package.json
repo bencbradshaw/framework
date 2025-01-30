@@ -11,13 +11,13 @@
   "exports": {
     "./all": {
       "types": "./index.d.ts",
-      "default": "./index.js",
-      "import": "./index.js"
+      "import": "./index.js",
+      "default": "./index.js"
     },
     "./*.js": {
       "types": "./lib/*.d.ts",
-      "default": "./lib/*.js",
-      "import": "./lib/*.js"
+      "import": "./lib/*.js",
+      "default": "./lib/*.js"
     }
   },
   "scripts": {

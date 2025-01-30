@@ -1,4 +1,4 @@
-export async function sseListener(url: string, callback?: (event: string, data: any) => void) {
+export default async function sseListener(url: string, callback?: (event: string, data: any) => void) {
   const runFetch = async () => {
     console.log(`Connecting to ${url}...`);
     return fetch(url, { headers: { Accept: 'text/event-stream' } });
