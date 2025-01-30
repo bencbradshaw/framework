@@ -15,7 +15,6 @@ import (
 	"framework/esbuild"
 	"framework/events"
 	"framework/internal"
-	"framework/middleware"
 	"framework/twig"
 )
 
@@ -28,8 +27,6 @@ type InitParams struct {
 	Mux                        *http.ServeMux
 	IsDevMode                  bool
 	EsbuildOpts                api.BuildOptions
-	RouterSetupFuncs           []RouterSetupFunc
-	DB                         interface{}
 	AutoRegisterTemplateRoutes bool
 }
 
@@ -43,7 +40,7 @@ func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
 	w.Write([]byte(result))
 }
 
-func Init(params InitParams) http.Handler {
+func Init(params InitParams) *http.ServeMux {
 	_, filename, _, ok := runtime.Caller(1)
 	if !ok {
 		log.Fatalf("Error determining current file directory")
@@ -120,12 +117,5 @@ func Init(params InitParams) http.Handler {
 		})
 	}
 
-	for _, setupConfig := range params.RouterSetupFuncs {
-		router := setupConfig.Handler(mux, params.DB, devMode)
-		mux.Handle(setupConfig.BasePath, router)
-		print("Registered router at: " + setupConfig.BasePath + "\n")
-	}
-
-	muxWithLogging := middleware.LoggingMiddleware(mux)
-	return muxWithLogging
+	return mux
 }

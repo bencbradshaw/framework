@@ -28,8 +28,8 @@ directory structure:
 ```txt
 .
 ├── app
-│   └── src/index.ts // default entry point for esbuild
-├── routes // default go http handlers
+│   └── src
+│        └── index.ts // default entry point for esbuild
 ├── templates // twig/html templates - auto register with `name.route.twig`
 ├── static // git ignored static files - esbuild result goes here
 ```
