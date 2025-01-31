@@ -12,9 +12,9 @@ import (
 
 	"github.com/evanw/esbuild/pkg/api"
 
+	"framework/env"
 	"framework/esbuild"
 	"framework/events"
-	"framework/internal"
 	"framework/twig"
 )
 
@@ -40,14 +40,14 @@ func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
 	w.Write([]byte(result))
 }
 
-func Init(params InitParams) *http.ServeMux {
+func Run(params InitParams) *http.ServeMux {
 	_, filename, _, ok := runtime.Caller(1)
 	if !ok {
 		log.Fatalf("Error determining current file directory")
 	}
 	currentDir := filepath.Dir(filename)
 
-	err := internal.LoadEnvFile(filepath.Join(currentDir, ".env"))
+	_, err := env.LoadEnvFile(filepath.Join(currentDir, ".env"))
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
@@ -118,4 +118,8 @@ func Init(params InitParams) *http.ServeMux {
 	}
 
 	return mux
+}
+
+func Build(params InitParams) api.BuildResult {
+	return esbuild.Build(params.EsbuildOpts)
 }

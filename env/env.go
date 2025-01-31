@@ -1,4 +1,4 @@
-package internal
+package env
 
 import (
 	"bufio"
@@ -6,13 +6,18 @@ import (
 	"strings"
 )
 
-func LoadEnvFile(filePath string) error {
+type EnvVars struct {
+	Vars map[string]interface{}
+}
+
+func LoadEnvFile(filePath string) (*EnvVars, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
 
+	envVars := &EnvVars{Vars: make(map[string]interface{})}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -26,7 +31,12 @@ func LoadEnvFile(filePath string) error {
 		key := strings.TrimSpace(parts[0])
 		value := strings.TrimSpace(parts[1])
 		os.Setenv(key, value)
+		envVars.Vars[key] = value
 	}
 
-	return scanner.Err()
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return envVars, nil
 }

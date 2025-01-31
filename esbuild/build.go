@@ -63,3 +63,19 @@ func InitDevMode(options api.BuildOptions) api.BuildContext {
 	}
 	return ctx
 }
+
+func Build(options api.BuildOptions) api.BuildResult {
+	defaultOptions := api.BuildOptions{
+		EntryPoints: []string{"./app/src/index.ts"},
+		Outdir:      "./static/",
+		Bundle:      true,
+		Write:       true,
+		LogLevel:    api.LogLevelInfo,
+		Splitting:   true,
+		Format:      api.FormatESModule,
+		Plugins:     []api.Plugin{HtmlPlugin},
+		Sourcemap:   api.SourceMapLinked,
+	}
+	finalOptions := mergeOptions(defaultOptions, options)
+	return api.Build(finalOptions)
+}
