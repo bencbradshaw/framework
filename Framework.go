@@ -64,11 +64,9 @@ func Run(params InitParams) *http.ServeMux {
 
 	fmt.Println("Running in dev mode:", devMode)
 
-	var ctx api.BuildContext
 	if devMode {
-		ctx = esbuild.InitDevMode(params.EsbuildOpts)
+		esbuild.InitDevMode(params.EsbuildOpts)
 		print("Dev mode initialized \n")
-		defer ctx.Dispose()
 	}
 
 	var mux *http.ServeMux

@@ -47,12 +47,13 @@ func InitDevMode(options api.BuildOptions) api.BuildContext {
 		LogLevel:    api.LogLevelInfo,
 		Splitting:   true,
 		Format:      api.FormatESModule,
-		Plugins:     []api.Plugin{HtmlPlugin},
+		Plugins:     []api.Plugin{HtmlPlugin, RebuildPlugin},
 		Sourcemap:   api.SourceMapLinked,
 	}
 	finalOptions := mergeOptions(defaultOptions, options)
 
 	ctx, ctxErr := api.Context(finalOptions)
+	print("ctx 1")
 	if ctxErr != nil {
 		log.Fatalf("Error creating build context: %v", ctxErr)
 	}
@@ -61,6 +62,7 @@ func InitDevMode(options api.BuildOptions) api.BuildContext {
 	if watchErr != nil {
 		log.Fatalf("Error starting watch mode: %v", watchErr)
 	}
+
 	return ctx
 }
 

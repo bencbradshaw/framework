@@ -138,7 +138,7 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 		if !exists {
 			return "", nil, fmt.Errorf("template not found: %s", path)
 		}
-		content := replaceIncludes(templateInfo.Path, templateInfo, analysis)
+		content := replaceIncludes(templateInfo.Path, templateInfo)
 		for blockName, usage := range templateInfo.UsedBlocks {
 			if definedContent, exists := templateInfo.DefinedBlocks[blockName]; exists {
 				content = strings.ReplaceAll(content, usage, definedContent)
@@ -173,7 +173,7 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 	return finalContent.String(), nil
 }
 
-func replaceIncludes(templatePath string, tInfo TemplateInfo, analysis map[string]TemplateInfo) string {
+func replaceIncludes(templatePath string, tInfo TemplateInfo) string {
 	content := readFileContent(templatePath)
 
 	for _, include := range tInfo.Includes {
