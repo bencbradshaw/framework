@@ -9,6 +9,7 @@ import (
 )
 
 var MessageChan = make(chan string)
+var EventChan = make(chan string)
 
 func EventStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -37,7 +38,6 @@ func EventStream(w http.ResponseWriter, r *http.Request) {
 			log.Printf("writing message")
 			_, writeErr := fmt.Fprint(w, msg)
 			if writeErr != nil {
-				// Client has likely disconnected, log error and exit
 				log.Printf("Error writing to client: %v", writeErr)
 				return
 			}
@@ -46,6 +46,14 @@ func EventStream(w http.ResponseWriter, r *http.Request) {
 			_msg := fmt.Sprintf("event: data \ndata: %v\n\n", msg)
 			log.Printf("writing message")
 			_, writeErr := fmt.Fprint(w, _msg)
+			if writeErr != nil {
+				log.Printf("Error writing to client: %v", writeErr)
+				return
+			}
+			w.(http.Flusher).Flush()
+		case eventMsg := <-EventChan:
+			log.Printf("writing event message")
+			_, writeErr := fmt.Fprint(w, eventMsg)
 			if writeErr != nil {
 				log.Printf("Error writing to client: %v", writeErr)
 				return
@@ -65,8 +73,8 @@ func EmitEvent(event string, data interface{}) {
 			log.Printf("Error marshaling data: %v", err)
 			return
 		}
-		MessageChan <- fmt.Sprintf("event: %s \ndata: %v\n\n", event, string(dataData))
+		EventChan <- fmt.Sprintf("event: %s \ndata: %v\n\n", event, string(dataData))
 	} else {
-		MessageChan <- event
+		EventChan <- fmt.Sprintf("event: %s \n", event)
 	}
 }
