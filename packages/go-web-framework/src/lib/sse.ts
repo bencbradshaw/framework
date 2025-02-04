@@ -36,13 +36,15 @@ export default async function sseListener(url: string, callback?: (event: string
           .split('\n')[1]
           .replace(/data: /, '')
           .trim();
-        console.log('event:', event, 'data:', data);
-        if (event === 'reload') {
-          window.location.reload();
-        }
-        if (event === 'entity' && callback) {
-          console.log('calling callback');
-          callback(event, JSON.parse(data));
+        if (callback) {
+          let parsed;
+          try {
+            parsed = JSON.parse(data);
+          } catch (e) {
+            parsed = data;
+          } finally {
+            callback(event, parsed);
+          }
         }
       }
     } catch (e) {

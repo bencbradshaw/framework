@@ -6,4 +6,3 @@ export * from './lib/reactive.js';
 export * from './lib/router.js';
 export * from './lib/sse.js';
 export * from './lib/state-store.js';
-console.log('123 54323454');
