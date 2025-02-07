@@ -8,7 +8,6 @@ export function prop() {
       },
       set(newValue) {
         value = newValue;
-        console.log('THIS', this);
         this.dispatchEvent(new CustomEvent(key, { detail: value, bubbles: true }));
       }
     });
@@ -16,15 +15,19 @@ export function prop() {
 }
 
 export class StateStore extends EventTarget {
-  subscribe(key: any, callback: (value: any) => void) {
-    callback((this as any)[key]);
-    const listenerHandler = (event: CustomEvent<any>) => {
-      console.log('event listener handler', event);
-      callback(event.detail);
+  subscribe<K extends keyof this>(key: K, cb: (value: this[K]) => void) {
+    const value = this[key];
+    if (value !== undefined && value !== null) {
+      cb(value);
+    }
+    const eventListener = (event: Event) => {
+      cb(this[key]);
     };
-    this.addEventListener(key, listenerHandler as EventListener);
+    this.addEventListener(key as string, eventListener);
     return {
-      unsubscribe: this.removeEventListener(key, listenerHandler as EventListener)
+      unsubscribe: () => {
+        this.removeEventListener(key as string, eventListener);
+      }
     };
   }
 }
