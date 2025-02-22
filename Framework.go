@@ -49,11 +49,7 @@ func Run(params InitParams) *http.ServeMux {
 
 	_, err := env.LoadEnvFile(filepath.Join(currentDir, ".env"))
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
-
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
+		log.Printf("No .env file loaded: %v", err)
 	}
 
 	devMode := params.IsDevMode
