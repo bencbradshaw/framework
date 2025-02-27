@@ -2,6 +2,7 @@ type Route = {
   path: string;
   component: string;
   importer: () => Promise<any>;
+  title?: string;
   params?: Record<string, string>;
 };
 
@@ -17,10 +18,10 @@ export class Router {
     document.addEventListener('click', this.handleLinkClick.bind(this));
   }
 
-  public addRoute(path: string, component: string, importer: () => Promise<any>, params?: Record<string, string>) {
-    const fullPath = this.baseUrl + path;
-    console.log('Adding route:', { path: fullPath, component, importer, params });
-    this.routes.push({ path: fullPath, component, importer, params });
+  public addRoute(route: Route) {
+    const fullPath = this.baseUrl + route.path;
+    console.log('Adding route:', route);
+    this.routes.push({ ...route, path: fullPath });
   }
 
   public navigate(path: string) {
@@ -59,6 +60,7 @@ export class Router {
           }
           const theInnerElement = document.createElement(route.component);
           this.rootElement.shadowRoot.appendChild(theInnerElement);
+          document.title = route.title ?? route.component;
         })
         .catch((error) => {
           console.error('Error importing module:', error);
