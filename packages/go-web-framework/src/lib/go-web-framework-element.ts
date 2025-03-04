@@ -1,4 +1,9 @@
-export class NovaElement extends HTMLElement {
+/**
+ * a minimal base class for web components.
+ * this is experimental and is recommended to use an alternative like LitElement
+ * @experimental
+ * */
+export class GoWebFrameworkElement extends HTMLElement {
   isUpdateScheduled = false;
 
   constructor() {

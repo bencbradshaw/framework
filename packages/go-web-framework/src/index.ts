@@ -1,6 +1,6 @@
 export * from './lib/context.js';
+export * from './lib/go-web-framework-element.js';
 export * from './lib/html.js';
-export * from './lib/nova-element.js';
 export * from './lib/polyfills.js';
 export * from './lib/reactive.js';
 export * from './lib/router.js';

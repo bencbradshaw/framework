@@ -32,6 +32,15 @@ func mergeOptions(defaultOptions, passedOptions api.BuildOptions) api.BuildOptio
 	if passedOptions.Format != 0 {
 		defaultOptions.Format = passedOptions.Format
 	}
+	if passedOptions.MinifySyntax {
+		defaultOptions.MinifySyntax = passedOptions.MinifySyntax
+	}
+	if passedOptions.MinifyWhitespace {
+		defaultOptions.MinifyWhitespace = passedOptions.MinifyWhitespace
+	}
+	if passedOptions.MinifyIdentifiers {
+		defaultOptions.MinifyIdentifiers = passedOptions.MinifyIdentifiers
+	}
 	if len(passedOptions.Plugins) > 0 {
 		defaultOptions.Plugins = passedOptions.Plugins
 	}
@@ -40,15 +49,18 @@ func mergeOptions(defaultOptions, passedOptions api.BuildOptions) api.BuildOptio
 
 func InitDevMode(options api.BuildOptions) api.BuildContext {
 	defaultOptions := api.BuildOptions{
-		EntryPoints: []string{"./app/src/index.ts"},
-		Outdir:      "./static/",
-		Bundle:      true,
-		Write:       true,
-		LogLevel:    api.LogLevelInfo,
-		Splitting:   true,
-		Format:      api.FormatESModule,
-		Plugins:     []api.Plugin{HtmlPlugin, RebuildPlugin},
-		Sourcemap:   api.SourceMapLinked,
+		EntryPoints:       []string{"./app/src/index.ts"},
+		Outdir:            "./static/",
+		Bundle:            true,
+		Write:             true,
+		LogLevel:          api.LogLevelInfo,
+		Splitting:         true,
+		Format:            api.FormatESModule,
+		Plugins:           []api.Plugin{HtmlPlugin, RebuildPlugin},
+		Sourcemap:         api.SourceMapLinked,
+		MinifyWhitespace:  false,
+		MinifyIdentifiers: false,
+		MinifySyntax:      false,
 	}
 	finalOptions := mergeOptions(defaultOptions, options)
 
