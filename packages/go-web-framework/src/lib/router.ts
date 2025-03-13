@@ -10,6 +10,7 @@ export class Router {
   private routes: Route[] = [];
   private rootElement: HTMLElement;
   public baseUrl: string;
+  public activeRoute: Route;
 
   constructor(rootElement: HTMLElement) {
     this.rootElement = rootElement;
@@ -36,11 +37,19 @@ export class Router {
   }
 
   private handleLinkClick(event: MouseEvent) {
-    const target = event.composedPath()[0] as HTMLElement;
-    if (target.tagName === 'A' && !target.hasAttribute('router-ignore')) {
+    const composedPath0 = event.composedPath()[0] as HTMLElement;
+    const composedPath0Parent = composedPath0.parentElement;
+    const firstA =
+      composedPath0?.tagName === 'A'
+        ? composedPath0
+        : composedPath0Parent?.tagName === 'A'
+        ? composedPath0Parent
+        : null;
+    console.log('First A:', firstA);
+    if (firstA && !firstA.hasAttribute('router-ignore')) {
       console.log('preventing');
       event.preventDefault();
-      const path = target.getAttribute('href')!;
+      const path = firstA.getAttribute('href')!;
       console.log('Link click intercepted, navigating to path:', path);
       this.navigate(path);
     }
@@ -61,6 +70,7 @@ export class Router {
           const theInnerElement = document.createElement(route.component);
           this.rootElement.shadowRoot.appendChild(theInnerElement);
           document.title = route.title ?? route.component;
+          this.activeRoute = route;
         })
         .catch((error) => {
           console.error('Error importing module:', error);
