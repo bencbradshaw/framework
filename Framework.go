@@ -12,10 +12,10 @@ import (
 
 	"github.com/evanw/esbuild/pkg/api"
 
-	"go-web-framework/env"
-	"go-web-framework/esbuild"
-	"go-web-framework/events"
-	"go-web-framework/twig"
+	"framework/env"
+	"framework/esbuild"
+	"framework/events"
+	"framework/twig"
 )
 
 type RouterSetupFunc struct {

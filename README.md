@@ -1,4 +1,4 @@
-Why Go Web Framework
+Why Framework
 
 - server side rendering and client side javascript apps
 - accompanying javascript library for frontend development

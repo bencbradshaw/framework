@@ -24,7 +24,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Ben Bradshaw",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "typescript": "^5.8.2"
   },
