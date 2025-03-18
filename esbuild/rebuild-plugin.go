@@ -2,7 +2,8 @@ package esbuild
 
 import (
 	"fmt"
-	"framework/events"
+
+	"github.com/bencbradshaw/framework/events"
 
 	"github.com/evanw/esbuild/pkg/api"
 )
