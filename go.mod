@@ -1,4 +1,4 @@
-module framework
+module github.com/bencbradshaw/framework
 
 go 1.23.4
 
