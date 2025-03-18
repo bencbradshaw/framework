@@ -1,15 +1,16 @@
 {
   "name": "go-web-framework",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "browser javascript for go-web-framework",
   "main": "index.js",
   "type": "module",
   "files": [
     "index.{js,d.ts,js.map,.d.ts.map}",
+    "README.md",
     "lib"
   ],
   "exports": {
-    "./all": {
+    ".": {
       "types": "./index.d.ts",
       "import": "./index.js"
     },
@@ -24,8 +25,8 @@
   },
   "author": "Ben Bradshaw",
   "license": "ISC",
-  "dependencies": {
-    "typescript": "^5.7.3"
+  "devDependencies": {
+    "typescript": "^5.8.2"
   },
   "engines": {
     "node": ">=18.17.1"

@@ -1,6 +1,5 @@
 export default async function sseListener(url: string, callback?: (event: string, data: any) => void) {
   const runFetch = async () => {
-    console.log(`Connecting to ${url}...`);
     return fetch(url, { headers: { Accept: 'text/event-stream' } });
   };
 
@@ -10,7 +9,6 @@ export default async function sseListener(url: string, callback?: (event: string
     let resp;
     try {
       resp = await runFetch();
-      console.log(`${url} response:`, resp);
       if (!resp.ok) {
         throw new Error(`HTTP error! status: ${resp.status}`);
       }

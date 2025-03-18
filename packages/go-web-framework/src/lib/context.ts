@@ -34,7 +34,6 @@ export function consume(uniqueName: string) {
           name: uniqueName,
           callback: (value: any) => {
             this[propertyKey] = value;
-            console.log('got prop', this[propertyKey]);
           }
         },
         bubbles: true,
