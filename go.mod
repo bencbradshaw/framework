@@ -1,4 +1,4 @@
-module framework
+module go-web-framework
 
 go 1.23.4
 
