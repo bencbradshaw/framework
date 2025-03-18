@@ -12,10 +12,10 @@ import (
 
 	"github.com/evanw/esbuild/pkg/api"
 
-	"framework/env"
-	"framework/esbuild"
-	"framework/events"
-	"framework/twig"
+	"github.com/bencbradshaw/framework/env"
+	"github.com/bencbradshaw/framework/esbuild"
+	"github.com/bencbradshaw/framework/events"
+	"github.com/bencbradshaw/framework/twig"
 )
 
 type RouterSetupFunc struct {
