@@ -3,7 +3,7 @@
  * this is experimental and is recommended to use an alternative like LitElement
  * @experimental
  * */
-export class GoWebFrameworkElement extends HTMLElement {
+export class FrameworkElement extends HTMLElement {
   isUpdateScheduled = false;
 
   constructor() {

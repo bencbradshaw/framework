@@ -1,5 +1,5 @@
 export * from './lib/context.js';
-export * from './lib/go-web-framework-element.js';
+export * from './lib/framework-element.js';
 export * from './lib/html.js';
 export * from './lib/polyfills.js';
 export * from './lib/reactive.js';
