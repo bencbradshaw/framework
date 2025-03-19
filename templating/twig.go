@@ -1,4 +1,4 @@
-package twig
+package templating
 
 import (
 	"fmt"
@@ -13,16 +13,16 @@ type Template struct {
 	Blocks     map[string]string
 }
 
-var templatesDir = "./templates"
+var twigTemplatesDir = "./templates"
 
-func Render(templatePath string, data map[string]interface{}) (string, error) {
-	fullTemplatePath := filepath.Join(templatesDir, templatePath)
-	templateAnalysis, err := analyzeTemplates(fullTemplatePath)
+func TwigRender(templatePath string, data map[string]interface{}) (string, error) {
+	fullTemplatePath := filepath.Join(twigTemplatesDir, templatePath)
+	templateAnalysis, err := analyzeTwigTemplates(fullTemplatePath)
 	if err != nil {
 		return "", err
 	}
 
-	builtTemplate, err := buildTemplate(templateAnalysis, fullTemplatePath, data)
+	builtTemplate, err := buildTwigTemplate(templateAnalysis, fullTemplatePath, data)
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +35,7 @@ func Render(templatePath string, data map[string]interface{}) (string, error) {
 	return finalTemplate, nil
 }
 
-type TemplateInfo struct {
+type TwigTemplateInfo struct {
 	Path          string
 	Extends       string
 	Includes      []string
@@ -44,8 +44,8 @@ type TemplateInfo struct {
 	EntryTemplate string
 }
 
-func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
-	templateAnalysis := make(map[string]TemplateInfo)
+func analyzeTwigTemplates(templatePath string) (map[string]TwigTemplateInfo, error) {
+	templateAnalysis := make(map[string]TwigTemplateInfo)
 	var analyzeTemplate func(path string, isEntry bool) error
 	analyzeTemplate = func(path string, isEntry bool) error {
 		fmt.Printf("Analyzing template at path: %s\n", path)
@@ -57,8 +57,8 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 			return fmt.Errorf("error reading template %s: %v", path, err)
 		}
 		content := string(raw)
-		extends, includes, definedBlocks, usedBlocks := parseTemplate(content)
-		templateInfo := TemplateInfo{
+		extends, includes, definedBlocks, usedBlocks := parseTwigTemplate(content)
+		TwigtemplateInfo := TwigTemplateInfo{
 			Path:          path,
 			Extends:       extends,
 			Includes:      includes,
@@ -66,11 +66,11 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 			UsedBlocks:    usedBlocks,
 		}
 		if isEntry {
-			templateInfo.EntryTemplate = path
+			TwigtemplateInfo.EntryTemplate = path
 		}
-		templateAnalysis[path] = templateInfo
+		templateAnalysis[path] = TwigtemplateInfo
 		for _, include := range includes {
-			includePath := filepath.Join(templatesDir, include)
+			includePath := filepath.Join(twigTemplatesDir, include)
 			err := analyzeTemplate(includePath, false)
 			if err != nil {
 				return err
@@ -78,7 +78,7 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 		}
 
 		if extends != "" {
-			parentPath := filepath.Join(templatesDir, extends)
+			parentPath := filepath.Join(twigTemplatesDir, extends)
 			err := analyzeTemplate(parentPath, false)
 			if err != nil {
 				return err
@@ -95,7 +95,7 @@ func analyzeTemplates(templatePath string) (map[string]TemplateInfo, error) {
 	return templateAnalysis, nil
 }
 
-func parseTemplate(content string) (string, []string, map[string]string, map[string]string) {
+func parseTwigTemplate(content string) (string, []string, map[string]string, map[string]string) {
 	var extends string
 	var includes []string
 	definedBlocks := make(map[string]string)
@@ -130,30 +130,30 @@ func parseTemplate(content string) (string, []string, map[string]string, map[str
 	return extends, includes, definedBlocks, usedBlocks
 }
 
-func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data map[string]interface{}) (string, error) {
+func buildTwigTemplate(analysis map[string]TwigTemplateInfo, templatePath string, data map[string]interface{}) (string, error) {
 	var finalContent strings.Builder
 	var renderTemplate func(path string, parentBlocks map[string]string) (string, map[string]string, error)
 	renderTemplate = func(path string, parentBlocks map[string]string) (string, map[string]string, error) {
-		templateInfo, exists := analysis[path]
+		TwigtemplateInfo, exists := analysis[path]
 		if !exists {
 			return "", nil, fmt.Errorf("template not found: %s", path)
 		}
-		content := replaceIncludes(templateInfo.Path, templateInfo)
-		for blockName, usage := range templateInfo.UsedBlocks {
-			if definedContent, exists := templateInfo.DefinedBlocks[blockName]; exists {
+		content := replaceIncludes(TwigtemplateInfo.Path, TwigtemplateInfo)
+		for blockName, usage := range TwigtemplateInfo.UsedBlocks {
+			if definedContent, exists := TwigtemplateInfo.DefinedBlocks[blockName]; exists {
 				content = strings.ReplaceAll(content, usage, definedContent)
 			}
 		}
-		if templateInfo.Extends != "" {
-			parentContent, parentBlocks, err := renderTemplate(filepath.Join(templatesDir, templateInfo.Extends), nil)
+		if TwigtemplateInfo.Extends != "" {
+			parentContent, parentBlocks, err := renderTemplate(filepath.Join(twigTemplatesDir, TwigtemplateInfo.Extends), nil)
 			if err != nil {
 				return "", nil, err
 			}
-			mergedContent := mergeBlocks(parentContent, parentBlocks, templateInfo.DefinedBlocks)
-			return mergedContent, templateInfo.DefinedBlocks, nil
+			mergedContent := mergeBlocks(parentContent, parentBlocks, TwigtemplateInfo.DefinedBlocks)
+			return mergedContent, TwigtemplateInfo.DefinedBlocks, nil
 		} else {
-			completeContent := mergeBlocks(content, parentBlocks, templateInfo.DefinedBlocks)
-			return completeContent, templateInfo.DefinedBlocks, nil
+			completeContent := mergeBlocks(content, parentBlocks, TwigtemplateInfo.DefinedBlocks)
+			return completeContent, TwigtemplateInfo.DefinedBlocks, nil
 		}
 	}
 	content, _, err := renderTemplate(templatePath, nil)
@@ -161,9 +161,9 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 		return "", err
 	}
 	content = handleVars(content, data)
-	entryTemplateInfo := analysis[templatePath]
-	if entryTemplateInfo.EntryTemplate != "" {
-		for blockName, definedContent := range entryTemplateInfo.DefinedBlocks {
+	entryTwigTemplateInfo := analysis[templatePath]
+	if entryTwigTemplateInfo.EntryTemplate != "" {
+		for blockName, definedContent := range entryTwigTemplateInfo.DefinedBlocks {
 			placeholder := fmt.Sprintf("{%% block %s %%}{%% endblock %%}", blockName)
 			content = strings.ReplaceAll(content, placeholder, definedContent)
 		}
@@ -173,19 +173,19 @@ func buildTemplate(analysis map[string]TemplateInfo, templatePath string, data m
 	return finalContent.String(), nil
 }
 
-func replaceIncludes(templatePath string, tInfo TemplateInfo) string {
-	content := readFileContent(templatePath)
+func replaceIncludes(templatePath string, tInfo TwigTemplateInfo) string {
+	content := readTwigFileContent(templatePath)
 
 	for _, include := range tInfo.Includes {
 		includePath := filepath.Join(filepath.Dir(templatePath), include)
-		includedContent := readFileContent(includePath)
+		includedContent := readTwigFileContent(includePath)
 		includeTag := `{%` + ` include ` + `"` + include + `"` + ` %}`
 		content = strings.Replace(content, includeTag, includedContent, 1)
 	}
 	return content
 }
 
-func readFileContent(path string) string {
+func readTwigFileContent(path string) string {
 	raw, _ := os.ReadFile(path)
 	return string(raw)
 }

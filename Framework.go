@@ -15,7 +15,7 @@ import (
 	"github.com/bencbradshaw/framework/env"
 	"github.com/bencbradshaw/framework/esbuild"
 	"github.com/bencbradshaw/framework/events"
-	"github.com/bencbradshaw/framework/twig"
+	"github.com/bencbradshaw/framework/templating"
 )
 
 type RouterSetupFunc struct {
@@ -31,7 +31,7 @@ type InitParams struct {
 }
 
 func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
-	result, err := twig.Render(name, data)
+	result, err := templating.TwigRender(name, data)
 	if err != nil {
 		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
