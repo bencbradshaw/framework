@@ -18,6 +18,7 @@ create your project
 ├── templates // twig/html templates - auto register with `name.route.twig`
 │   ├── index.twig // "/" default route
 │   └── about.route.twig // "/about" route
+├── static // build files from esbuild are placed here
 ├── main.go // your go application - see below for example
 ```
 
@@ -25,24 +26,48 @@ create your project
   - html routes served from /templates
   - frontend javascript bundled and served
 
-2. Extend and Override defaults
+2. Get started with all the defaults:
 
 ```go
 package main
 
 import (
 	"net/http"
-	"github.com/bencbradshaw/go-web-framework"
+
+	"github.com/bencbradshaw/framework"
+)
+
+func main() {
+	http.ListenAndServe(":2025", framework.Run(nil))
+}
+```
+
+3. Override the defaults:
+
+```go
+package main
+
+import (
+	"net/http"
+	"os"
+
+	"github.com/bencbradshaw/framework"
+
 	"github.com/evanw/esbuild/pkg/api"
 )
 
-
 func main() {
-	mux := framework.Run()
-	// add any other routes needed for you application, e.g.
-	// mux.Handle("/api/chat", handlers.HandleChatRequest)
-	print("Server started at http://localhost:2025 \n")
+	mux := framework.Run(framework.InitParams{
+		IsDevMode: false,
+		AutoRegisterTemplateRoutes: false,
+		EsbuildOpts: api.BuildOptions{
+			EntryPoints: []string{"./app/src/my-app.tsx"},
+		},
+	})
+	// add your own routes, the same as you would with the default mux
+	mux.Handle("/api/hello-world", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello, World!"))
+	}))
 	http.ListenAndServe(":2025", mux)
 }
-
 ```

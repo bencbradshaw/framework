@@ -40,7 +40,17 @@ func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
 	w.Write([]byte(result))
 }
 
-func Run(params InitParams) *http.ServeMux {
+func Run(params *InitParams) *http.ServeMux {
+	if params == nil {
+		params = &InitParams{
+			IsDevMode: true,
+			EsbuildOpts: api.BuildOptions{
+				EntryPoints: []string{"./app/src/index.ts"},
+			},
+			AutoRegisterTemplateRoutes: true,
+		}
+	}
+
 	_, filename, _, ok := runtime.Caller(1)
 	if !ok {
 		log.Fatalf("Error determining current file directory")
@@ -65,14 +75,9 @@ func Run(params InitParams) *http.ServeMux {
 		print("Dev mode initialized \n")
 	}
 
-	var mux *http.ServeMux
-	if params.Mux == nil {
-		mux = http.NewServeMux()
-	} else {
-		mux = params.Mux
-	}
-	autoRegisterTemplateRoutes := params.AutoRegisterTemplateRoutes
-	if autoRegisterTemplateRoutes {
+	mux := http.NewServeMux()
+
+	if params.AutoRegisterTemplateRoutes {
 		templateDir := "templates"
 		err := filepath.Walk(templateDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
