@@ -1,22 +1,23 @@
 Why Framework
 
-- server side rendering and client side javascript apps
-- accompanying javascript library for frontend development
-  - server sent events for auto-reload while developing
-  - router, state, elements
-- esbuild for fast and simple ts, js, jsx, tsx, css support for bundling, minifying, code splitting
-- twig templates for html rendering
-- native go http module
+- Easily create html pages for SEO optimized "public" facing pages
+- AND create one or multiple JavaScript SPA without running any NodeJS process
+  - Utilizing esbuild's Go module, there is no need for Webpack, Babel, Vite, Rollup, or any separate process apart from your Go server. TypeScript, JavaScript, JSX, TSX, and CSS
+- Accompanying JavaScript library for frontend development
+  - Server-sent events for auto-reload while developing
+  - Router, state management, and elements
+- **Twig templates** for HTML rendering
+- **Native Go HTTP module**
 
 create your project
 
 ```txt
 ├── app
 │   └── src
-│        └── index.ts // default entry point for esbuild
+│        └── index.ts // this is the default entry point for your frontend application
 ├── templates // twig/html templates - auto register with `name.route.twig`
 │   ├── index.twig // "/" default route
-│   └── about.twig // "/about" route
+│   └── about.route.twig // "/about" route
 ├── main.go // your go application - see below for example
 ```
 
@@ -27,40 +28,17 @@ create your project
 2. Extend and Override defaults
 
 ```go
-// main.go
 package main
 
 import (
 	"net/http"
-	"os"
 	"github.com/bencbradshaw/go-web-framework"
 	"github.com/evanw/esbuild/pkg/api"
 )
 
 
 func main() {
-	if os.Getenv("BUILD") == "true" {
-		buildParams := framework.InitParams{
-			EsbuildOpts: api.BuildOptions{
-				EntryPoints:       []string{"./app/src/index.ts"},
-				MinifyWhitespace:  true,
-				MinifyIdentifiers: true,
-				MinifySyntax:      true,
-				Sourcemap:         api.SourceMapNone,
-			},
-			AutoRegisterTemplateRoutes: true,
-		}
-		framework.Build(buildParams)
-		print("Build complete \n")
-		return
-	}
-	mux := framework.Run(framework.InitParams{
-		IsDevMode: true,
-		EsbuildOpts: api.BuildOptions{
-			EntryPoints: []string{"./app/src/index.ts"},
-		},
-		AutoRegisterTemplateRoutes: true,
-	})
+	mux := framework.Run()
 	// add any other routes needed for you application, e.g.
 	// mux.Handle("/api/chat", handlers.HandleChatRequest)
 	print("Server started at http://localhost:2025 \n")
