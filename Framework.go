@@ -30,8 +30,9 @@ type InitParams struct {
 	AutoRegisterTemplateRoutes bool
 }
 
+// Render renders the specified template and returns the HTML response.
 func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
-	result, err := templating.TwigRender(name, data)
+	result, err := templating.HtmlRender(name, data) // Updated to call HtmlRender
 	if err != nil {
 		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -83,18 +84,17 @@ func Run(params *InitParams) *http.ServeMux {
 			if err != nil {
 				return err
 			}
-			if !info.IsDir() && filepath.Ext(info.Name()) == ".twig" && strings.Contains(info.Name(), "route") {
+			if !info.IsDir() && strings.HasSuffix(info.Name(), ".gohtml") {
 				tmplName := info.Name()
 				baseName := strings.Split(tmplName, ".")[0]
 				routePath := "/" + baseName
-				if strings.Contains(tmplName, "subroute") {
-					routePath += "/"
-				}
+
+				// Register the route for the template
 				mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
 					Render(
 						w,
 						tmplName,
-						map[string]interface{}{"title": tmplName},
+						map[string]interface{}{"title": baseName},
 					)
 				})
 				fmt.Printf("Registered route for template: %s -> %s\n", tmplName, routePath)
@@ -104,18 +104,20 @@ func Run(params *InitParams) *http.ServeMux {
 		if err != nil {
 			log.Fatalf("Error walking through templates directory: %v", err)
 		}
-		mux.HandleFunc("/events", events.EventStream)
 
-		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
-
+		// Define a route for the index page using index.gohtml
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			Render(
 				w,
-				"index.twig",
-				map[string]interface{}{"title": "home"},
+				"index.gohtml", // Ensure this matches your index template name
+				map[string]interface{}{"title": "Home"},
 			)
 		})
 	}
+
+	mux.HandleFunc("/events", events.EventStream) // Assuming EventStream is still to be handled.
+
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	return mux
 }
