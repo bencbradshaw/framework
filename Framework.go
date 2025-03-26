@@ -31,12 +31,15 @@ type InitParams struct {
 }
 
 // Render renders the specified template and returns the HTML response.
-func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
-	result, err := templating.HtmlRender(name, data) // Updated to call HtmlRender
+func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]interface{}) {
+	fmt.Println("Rendering template: ", templateName)
+
+	result, err := templating.HtmlRender(templateName, data)
 	if err != nil {
 		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	fmt.Println("Rendered template: ", result)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(result))
 }
@@ -84,17 +87,19 @@ func Run(params *InitParams) *http.ServeMux {
 			if err != nil {
 				return err
 			}
-			if !info.IsDir() && strings.HasSuffix(info.Name(), ".gohtml") {
+			if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
 				tmplName := info.Name()
 				baseName := strings.Split(tmplName, ".")[0]
 				routePath := "/" + baseName
 
 				// Register the route for the template
+				println("Registering route for template: ", tmplName, " -> ", routePath)
 				mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
-					Render(
+					fmt.Printf("handling request for route: %s\n", routePath)
+					RenderWithHtmlResponse(
 						w,
 						tmplName,
-						map[string]interface{}{"title": baseName},
+						map[string]any{"title": baseName},
 					)
 				})
 				fmt.Printf("Registered route for template: %s -> %s\n", tmplName, routePath)
@@ -105,12 +110,12 @@ func Run(params *InitParams) *http.ServeMux {
 			log.Fatalf("Error walking through templates directory: %v", err)
 		}
 
-		// Define a route for the index page using index.gohtml
+		// Define a route for the index page using index.html
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			Render(
+			RenderWithHtmlResponse(
 				w,
-				"index.gohtml", // Ensure this matches your index template name
-				map[string]interface{}{"title": "Home"},
+				"index.html", // Ensure this matches your index template name
+				map[string]any{"title": "Home"},
 			)
 		})
 	}

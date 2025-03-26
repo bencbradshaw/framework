@@ -1,24 +1,31 @@
 package templating
 
 import (
+	"fmt"
 	"html/template"
 	"path/filepath"
 	"strings"
 )
 
-// templatesDir is the directory where your template files are located
 var templatesDir = "./templates"
 
-// HtmlRender renders the specified template with the given data and returns the rendered HTML as a string.
-func HtmlRender(templatePath string, data map[string]interface{}) (string, error) {
-	// Parse base template along with the specific page template
-	tmpl, err := template.ParseGlob(filepath.Join(templatesDir, "*.gohtml"))
+func HtmlRender(templateName string, data map[string]any) (string, error) {
+	fmt.Println("Rendering template: ", templateName)
+
+	files := []string{
+		filepath.Join(templatesDir, "base.html"),
+		filepath.Join(templatesDir, "entry.html"),
+		filepath.Join(templatesDir, templateName),
+	}
+
+	tmpl, err := template.ParseFiles(files...)
 	if err != nil {
 		return "", err
 	}
 
 	var output strings.Builder
-	// Execute the base template, passing the data
+	// Execute the template named "base"; this will pull in the "content"
+	// definition from the specific file (e.g., about.html, index.html etc.)
 	if err := tmpl.ExecuteTemplate(&output, "base", data); err != nil {
 		return "", err
 	}
