@@ -30,7 +30,6 @@ type InitParams struct {
 	AutoRegisterTemplateRoutes bool
 }
 
-// Render renders the specified template and returns the HTML response.
 func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]interface{}) {
 	fmt.Println("Rendering template: ", templateName)
 
@@ -39,7 +38,6 @@ func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map
 		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("Rendered template: ", result)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(result))
 }
@@ -91,9 +89,10 @@ func Run(params *InitParams) *http.ServeMux {
 				tmplName := info.Name()
 				baseName := strings.Split(tmplName, ".")[0]
 				routePath := "/" + baseName
+				if strings.Contains(tmplName, "subroute") {
+					routePath += "/"
+				}
 
-				// Register the route for the template
-				println("Registering route for template: ", tmplName, " -> ", routePath)
 				mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("handling request for route: %s\n", routePath)
 					RenderWithHtmlResponse(
@@ -110,17 +109,16 @@ func Run(params *InitParams) *http.ServeMux {
 			log.Fatalf("Error walking through templates directory: %v", err)
 		}
 
-		// Define a route for the index page using index.html
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			RenderWithHtmlResponse(
 				w,
-				"index.html", // Ensure this matches your index template name
+				"index.html",
 				map[string]any{"title": "Home"},
 			)
 		})
 	}
 
-	mux.HandleFunc("/events", events.EventStream) // Assuming EventStream is still to be handled.
+	mux.HandleFunc("/events", events.EventStream)
 
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
