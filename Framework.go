@@ -15,7 +15,7 @@ import (
 	"github.com/bencbradshaw/framework/env"
 	"github.com/bencbradshaw/framework/esbuild"
 	"github.com/bencbradshaw/framework/events"
-	"github.com/bencbradshaw/framework/twig"
+	"github.com/bencbradshaw/framework/templating"
 )
 
 type RouterSetupFunc struct {
@@ -30,8 +30,10 @@ type InitParams struct {
 	AutoRegisterTemplateRoutes bool
 }
 
-func Render(w http.ResponseWriter, name string, data map[string]interface{}) {
-	result, err := twig.Render(name, data)
+func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]interface{}) {
+	fmt.Println("Rendering template: ", templateName)
+
+	result, err := templating.HtmlRender(templateName, data)
 	if err != nil {
 		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -83,18 +85,20 @@ func Run(params *InitParams) *http.ServeMux {
 			if err != nil {
 				return err
 			}
-			if !info.IsDir() && filepath.Ext(info.Name()) == ".twig" && strings.Contains(info.Name(), "route") {
+			if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
 				tmplName := info.Name()
 				baseName := strings.Split(tmplName, ".")[0]
 				routePath := "/" + baseName
 				if strings.Contains(tmplName, "subroute") {
 					routePath += "/"
 				}
+
 				mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
-					Render(
+					fmt.Printf("handling request for route: %s\n", routePath)
+					RenderWithHtmlResponse(
 						w,
 						tmplName,
-						map[string]interface{}{"title": tmplName},
+						map[string]any{"title": baseName},
 					)
 				})
 				fmt.Printf("Registered route for template: %s -> %s\n", tmplName, routePath)
@@ -104,18 +108,19 @@ func Run(params *InitParams) *http.ServeMux {
 		if err != nil {
 			log.Fatalf("Error walking through templates directory: %v", err)
 		}
-		mux.HandleFunc("/events", events.EventStream)
-
-		mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			Render(
+			RenderWithHtmlResponse(
 				w,
-				"index.twig",
-				map[string]interface{}{"title": "home"},
+				"index.html",
+				map[string]any{"title": "Home"},
 			)
 		})
 	}
+
+	mux.HandleFunc("/events", events.EventStream)
+
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	return mux
 }

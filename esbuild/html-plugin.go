@@ -28,7 +28,8 @@ var HtmlPlugin = api.Plugin{
 					}
 				}
 			}
-			err := os.WriteFile(filepath.Join("templates", "entry.twig"), []byte(entryContent), 0644)
+			wrappedContent := `{{define "entry"}}` + "\n" + entryContent + `{{end}}`
+			err := os.WriteFile(filepath.Join("templates", "entry.html"), []byte(wrappedContent), 0644)
 			if err != nil {
 				return api.OnEndResult{}, err
 			}
