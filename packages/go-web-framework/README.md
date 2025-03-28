@@ -1,6 +1,6 @@
 # GoWebFramework frontend
 
-## use in tandem with go-web-framework
+## use with [framework](https://github.com/bencbradshaw/framework)
 
 ## quickstart
 
