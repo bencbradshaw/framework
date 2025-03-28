@@ -1,6 +1,6 @@
 {
   "name": "go-web-framework",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "browser javascript for go-web-framework",
   "main": "index.js",
   "type": "module",
