@@ -30,7 +30,7 @@ your-project/
 │   ├── other.html      # "/other" route auto-registered
 │   └── app.subroute.html # "/app/" subroute auto-registered for the app - an easy way to add a new SPA
 ├── static # bundled js files place here, you can .gitignore this
-├── app/
+├── frontend/
 │   └──  src/
 │      └── index.ts        # Your frontend entrypoint, customize and codesplit as needed
 └── main.go             # Your server

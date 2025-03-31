@@ -47,7 +47,7 @@ func Run(params *InitParams) *http.ServeMux {
 		params = &InitParams{
 			IsDevMode: true,
 			EsbuildOpts: api.BuildOptions{
-				EntryPoints: []string{"./app/src/index.ts"},
+				EntryPoints: []string{"./frontend/src/index.ts"},
 			},
 			AutoRegisterTemplateRoutes: true,
 		}

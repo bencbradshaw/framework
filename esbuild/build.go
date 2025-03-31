@@ -49,7 +49,7 @@ func mergeOptions(defaultOptions, passedOptions api.BuildOptions) api.BuildOptio
 
 func InitDevMode(options api.BuildOptions) api.BuildContext {
 	defaultOptions := api.BuildOptions{
-		EntryPoints:       []string{"./app/src/index.ts"},
+		EntryPoints:       []string{"./frontend/src/index.ts"},
 		Outdir:            "./static/",
 		Bundle:            true,
 		Write:             true,
@@ -80,7 +80,7 @@ func InitDevMode(options api.BuildOptions) api.BuildContext {
 
 func Build(options api.BuildOptions) api.BuildResult {
 	defaultOptions := api.BuildOptions{
-		EntryPoints: []string{"./app/src/index.ts"},
+		EntryPoints: []string{"./frontend/src/index.ts"},
 		Outdir:      "./static/",
 		Bundle:      true,
 		Write:       true,
