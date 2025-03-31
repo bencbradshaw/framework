@@ -57,6 +57,7 @@ export default function sseListener(url: string, callback?: (event: string, data
   listener();
 
   return () => {
+    console.log('Unsubscribing from SSE');
     isSubscribed = false;
   };
 }

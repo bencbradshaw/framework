@@ -81,3 +81,28 @@ func main() {
 	http.ListenAndServe(":2025", mux)
 }
 ```
+
+### 🚧 In Progress Features
+
+- **Support for Multiple Base Templates**
+
+  - Allow customization of JavaScript or CSS for different templates.
+  - Your home page and about page might need different CSS or JS loaded.
+
+- **Image Hosting**
+
+  - Provide built-in support for serving and managing images.
+  - This will be simply a folder served with static files
+
+- **Authentication Guard**
+
+  - Offer a middleware mechanism to enable developers to implement custom authentication logic for route handlers.
+  - Rather than providing an authentication system, this will allow developers to use their own authentication systems that can tie into the framework.
+
+- **Customizable Templates Directory**
+
+  - Ensure the `/templates` directory path can be configured as needed.
+
+- **Template Naming Conventions**
+  - Clearly define and enforce a consistent naming pattern for templates to improve maintainability.
+  - `.html` and `subroute.html`, `base` and `entry`. What do they mean and how do they work
