@@ -9,7 +9,7 @@ _A minimal yet powerful web framework with builtin support for ssr html pages an
 - 1 Go dependency: esbuild
   - Use anything esbuild supports, like TypeScript, JavaScript, JSX, TSX, and CSS
 - NO NodeJS process required - no Webpack, Babel, Vite, Rollup, etc.
-- Clean `/templates` + `/app` folder structure
+- Clean `/templates` + `/frontend` folder structure
 - Autoreload when in development mode
 - Optional Accompanying JavaScript library for frontend development
   - Server Sent Events handler, Router, state management, and elements

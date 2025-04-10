@@ -85,7 +85,7 @@ func Run(params *InitParams) *http.ServeMux {
 			if err != nil {
 				return err
 			}
-			if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+			if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") && !strings.Contains(info.Name(), ".custom.html") {
 				tmplName := info.Name()
 				baseName := strings.Split(tmplName, ".")[0]
 				routePath := "/" + baseName
