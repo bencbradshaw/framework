@@ -64,10 +64,38 @@ func Run(params *InitParams) *http.ServeMux {
 		log.Printf("No .env file loaded: %v", err)
 	}
 
-	devMode := params.IsDevMode
-	if !params.IsDevMode {
-		flag.BoolVar(&devMode, "dev", false, "Run in development mode")
-		flag.Parse()
+	devMode := params.IsDevMode // Initialize from params
+	if !params.IsDevMode {      // If mode isn't forced by params, consider flags
+		if flag.Lookup("dev") == nil {
+			// Note: `devMode` here is the local variable. The flag will bind to its address
+			// for the current call to Run. This is generally fine for controlling `devMode`
+			// within this specific Run invocation based on command-line flags,
+			// but doesn't create a persistent global flag state that other packages might inspect
+			// via the flag package directly (unless they lookup after this Run call parsed).
+			flag.BoolVar(&devMode, "dev", false, "Run in development mode")
+		}
+
+		if !flag.Parsed() {
+			flag.Parse()
+		}
+
+		// After parsing (or if already parsed), ensure `devMode` reflects the actual state of the "dev" flag.
+		// This is crucial if `flag.Parse()` was called in a previous test or Run invocation,
+		// or if tests are run with `-args -dev`.
+		if f := flag.Lookup("dev"); f != nil { // Check if the "dev" flag is defined
+			// Access the flag's value. For a BoolVar, it's true if "true", false otherwise.
+			if f.Value.String() == "true" {
+				devMode = true
+			} else {
+				devMode = false // Catches "false" or any other non-"true" string for the bool flag
+			}
+		} else {
+			// If the "dev" flag was never defined (e.g. Lookup was nil and we didn't define it),
+			// and params.IsDevMode is false, then devMode should be false.
+			// This is already handled as devMode was initialized to params.IsDevMode (false in this block).
+			// So, devMode = false; explicitly.
+			devMode = false
+		}
 	}
 
 	fmt.Println("Running in dev mode:", devMode)
@@ -120,7 +148,17 @@ func Run(params *InitParams) *http.ServeMux {
 
 	mux.HandleFunc("/events", events.EventStream)
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	// Determine project root to make static file path absolute
+	// Assuming Framework.go is at project root. If it can be deeper, this needs adjustment.
+	// For this project, Framework.go is at the root.
+	_, mainGoFilename, _, ok := runtime.Caller(0) // Get path of Framework.go
+	if !ok {
+		log.Fatalf("Could not get current file path for static dir setup")
+	}
+	projectRootDir := filepath.Dir(mainGoFilename)
+	staticDir := filepath.Join(projectRootDir, "static")
+	log.Printf("Serving static files from: %s", staticDir)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
 
 	return mux
 }
