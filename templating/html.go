@@ -24,9 +24,9 @@ func HtmlRender(templateName string, data map[string]any) (string, error) {
 	}
 
 	var output strings.Builder
-	// Execute the template named "base"; this will pull in the "content"
+	// Execute the template named "base.html"; this will pull in the "content"
 	// definition from the specific file (e.g., about.html, index.html etc.)
-	if err := tmpl.ExecuteTemplate(&output, "base", data); err != nil {
+	if err := tmpl.ExecuteTemplate(&output, "base.html", data); err != nil {
 		return "", err
 	}
 
