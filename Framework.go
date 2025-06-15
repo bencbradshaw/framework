@@ -28,12 +28,15 @@ type InitParams struct {
 	IsDevMode                  bool
 	EsbuildOpts                api.BuildOptions
 	AutoRegisterTemplateRoutes bool
+	TemplatesDir               string
 }
 
-func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]interface{}) {
-	fmt.Println("Rendering template: ", templateName)
+// RenderWithHtmlResponse renders the specified HTML template with given data and writes it to the response.
+// It now accepts templatesDir as its second argument.
+func RenderWithHtmlResponse(w http.ResponseWriter, templatesDir string, templateName string, data map[string]interface{}) {
+	fmt.Println("Rendering template: ", templateName, "using dir:", templatesDir)
 
-	result, err := templating.HtmlRender(templateName, data)
+	result, err := templating.HtmlRender(templatesDir, templateName, data)
 	if err != nil {
 		http.Error(w, "Error rendering template: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -72,7 +75,18 @@ func Run(params *InitParams) *http.ServeMux {
 
 	fmt.Println("Running in dev mode:", devMode)
 
+	// Determine templateDir once
+	templateDir := params.TemplatesDir
+	if templateDir == "" {
+		templateDir = "templates"
+	}
+
 	if devMode {
+		// Ensure EsbuildOpts has Plugins initialized
+		if params.EsbuildOpts.Plugins == nil {
+			params.EsbuildOpts.Plugins = []api.Plugin{}
+		}
+		params.EsbuildOpts.Plugins = append(params.EsbuildOpts.Plugins, esbuild.NewHtmlPlugin(templateDir))
 		esbuild.InitDevMode(params.EsbuildOpts)
 		print("Dev mode initialized \n")
 	}
@@ -80,7 +94,7 @@ func Run(params *InitParams) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	if params.AutoRegisterTemplateRoutes {
-		templateDir := "templates"
+		// Use the templateDir defined above. It's captured by the handler functions below.
 		err := filepath.Walk(templateDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -93,10 +107,13 @@ func Run(params *InitParams) *http.ServeMux {
 					routePath += "/"
 				}
 
+				// currentTmplDir captured here for the handler
+				currentTmplDir := templateDir
 				mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("handling request for route: %s\n", routePath)
 					RenderWithHtmlResponse(
 						w,
+						currentTmplDir, // Pass the captured templatesDir
 						tmplName,
 						map[string]any{"title": baseName},
 					)
@@ -109,9 +126,12 @@ func Run(params *InitParams) *http.ServeMux {
 			log.Fatalf("Error walking through templates directory: %v", err)
 		}
 
+		// currentTmplDirForRoot captured here for the root handler
+		currentTmplDirForRoot := templateDir
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			RenderWithHtmlResponse(
 				w,
+				currentTmplDirForRoot, // Pass the captured templatesDir
 				"index.html",
 				map[string]any{"title": "Home"},
 			)
@@ -126,5 +146,14 @@ func Run(params *InitParams) *http.ServeMux {
 }
 
 func Build(params InitParams) api.BuildResult {
+	templateDir := params.TemplatesDir
+	if templateDir == "" {
+		templateDir = "templates"
+	}
+	// Ensure EsbuildOpts has Plugins initialized
+	if params.EsbuildOpts.Plugins == nil {
+		params.EsbuildOpts.Plugins = []api.Plugin{}
+	}
+	params.EsbuildOpts.Plugins = append(params.EsbuildOpts.Plugins, esbuild.NewHtmlPlugin(templateDir))
 	return esbuild.Build(params.EsbuildOpts)
 }
