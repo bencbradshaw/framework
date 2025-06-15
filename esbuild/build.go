@@ -42,7 +42,9 @@ func mergeOptions(defaultOptions, passedOptions api.BuildOptions) api.BuildOptio
 		defaultOptions.MinifyIdentifiers = passedOptions.MinifyIdentifiers
 	}
 	if len(passedOptions.Plugins) > 0 {
-		defaultOptions.Plugins = passedOptions.Plugins
+		// Append passed plugins to default plugins, ensuring no duplicates if manager carefully
+		// For example, HtmlPlugin is now added by the caller (Framework.go) into passedOptions.Plugins
+		defaultOptions.Plugins = append(defaultOptions.Plugins, passedOptions.Plugins...)
 	}
 	return defaultOptions
 }
@@ -56,7 +58,7 @@ func InitDevMode(options api.BuildOptions) api.BuildContext {
 		LogLevel:          api.LogLevelInfo,
 		Splitting:         true,
 		Format:            api.FormatESModule,
-		Plugins:           []api.Plugin{HtmlPlugin, RebuildPlugin},
+		Plugins:           []api.Plugin{RebuildPlugin}, // HtmlPlugin is now passed in via options
 		Sourcemap:         api.SourceMapLinked,
 		MinifyWhitespace:  false,
 		MinifyIdentifiers: false,
@@ -87,7 +89,7 @@ func Build(options api.BuildOptions) api.BuildResult {
 		LogLevel:    api.LogLevelInfo,
 		Splitting:   true,
 		Format:      api.FormatESModule,
-		Plugins:     []api.Plugin{HtmlPlugin},
+		Plugins:     []api.Plugin{}, // HtmlPlugin is now passed in via options
 		Sourcemap:   api.SourceMapLinked,
 	}
 	finalOptions := mergeOptions(defaultOptions, options)

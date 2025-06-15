@@ -9,12 +9,14 @@ import (
 	"github.com/evanw/esbuild/pkg/api"
 )
 
-// HtmlPlugin is an exported variable for the HTML plugin
-var HtmlPlugin = api.Plugin{
-	Name: "html-plugin",
-	Setup: func(build api.PluginBuild) {
-		build.OnEnd(func(result *api.BuildResult) (api.OnEndResult, error) {
-			var entryContent string
+// NewHtmlPlugin creates an esbuild plugin that generates an entry.html file
+// in the specified templates directory.
+func NewHtmlPlugin(templatesDir string) api.Plugin {
+	return api.Plugin{
+		Name: "html-plugin",
+		Setup: func(build api.PluginBuild) {
+			build.OnEnd(func(result *api.BuildResult) (api.OnEndResult, error) {
+				var entryContent string
 			for _, output := range result.OutputFiles {
 				if strings.Contains(output.Path, "index") {
 					scriptPath := filepath.Base(output.Path)
@@ -29,12 +31,19 @@ var HtmlPlugin = api.Plugin{
 				}
 			}
 			wrappedContent := `{{define "entry"}}` + "\n" + entryContent + `{{end}}`
-			err := os.WriteFile(filepath.Join("templates", "entry.html"), []byte(wrappedContent), 0644)
+			// Ensure the templates directory exists
+			if _, err := os.Stat(templatesDir); os.IsNotExist(err) {
+				if err := os.MkdirAll(templatesDir, 0755); err != nil {
+					return api.OnEndResult{}, fmt.Errorf("failed to create templates directory %s: %w", templatesDir, err)
+				}
+			}
+			err := os.WriteFile(filepath.Join(templatesDir, "entry.html"), []byte(wrappedContent), 0644)
 			if err != nil {
 				return api.OnEndResult{}, err
 			}
-			fmt.Println("wrote entry.twig in ./templates")
+			fmt.Printf("wrote entry.html in ./%s\n", templatesDir)
 			return api.OnEndResult{}, nil
 		})
-	},
+	}, // Added comma here
 }
+} // Added missing function closing brace
