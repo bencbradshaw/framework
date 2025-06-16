@@ -28,6 +28,7 @@ type InitParams struct {
 	IsDevMode                  bool
 	EsbuildOpts                api.BuildOptions
 	AutoRegisterTemplateRoutes bool
+	AuthGuard                  func(http.Handler) http.Handler
 }
 
 func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]interface{}) {
@@ -50,6 +51,7 @@ func Run(params *InitParams) *http.ServeMux {
 				EntryPoints: []string{"./frontend/src/index.ts"},
 			},
 			AutoRegisterTemplateRoutes: true,
+			AuthGuard:                  nil,
 		}
 	}
 
@@ -92,15 +94,21 @@ func Run(params *InitParams) *http.ServeMux {
 				if strings.Contains(tmplName, "subroute") {
 					routePath += "/"
 				}
-
-				mux.HandleFunc(routePath, func(w http.ResponseWriter, r *http.Request) {
+				handlerFunc := func(w http.ResponseWriter, r *http.Request) {
 					fmt.Printf("handling request for route: %s\n", routePath)
 					RenderWithHtmlResponse(
 						w,
 						tmplName,
 						map[string]any{"title": baseName},
 					)
-				})
+				}
+
+				if params.AuthGuard != nil && strings.Contains(tmplName, ".auth.") {
+					mux.Handle(routePath, params.AuthGuard(http.HandlerFunc(handlerFunc)))
+				} else {
+					mux.HandleFunc(routePath, handlerFunc)
+				}
+
 				fmt.Printf("Registered route for template: %s -> %s\n", tmplName, routePath)
 			}
 			return nil
