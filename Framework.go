@@ -12,6 +12,8 @@ import (
 
 	"github.com/evanw/esbuild/pkg/api"
 
+	"framework/internal"
+
 	"github.com/bencbradshaw/framework/env"
 	"github.com/bencbradshaw/framework/esbuild"
 	"github.com/bencbradshaw/framework/events"
@@ -23,13 +25,14 @@ type RouterSetupFunc struct {
 	Handler  func(mux *http.ServeMux, db interface{}, devMode bool) http.Handler
 }
 
-type InitParams struct {
-	Mux                        *http.ServeMux
-	IsDevMode                  bool
-	EsbuildOpts                api.BuildOptions
-	AutoRegisterTemplateRoutes bool
-	AuthGuard                  func(http.Handler) http.Handler
-}
+// type InitParams struct {
+// 	Mux                        *http.ServeMux
+// 	IsDevMode                  bool
+// 	EsbuildOpts                api.BuildOptions
+// 	AutoRegisterTemplateRoutes bool
+// 	AuthGuard                  func(http.Handler) http.Handler
+// 	TemplateDir                string
+// }
 
 func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]interface{}) {
 	fmt.Println("Rendering template: ", templateName)
@@ -43,17 +46,8 @@ func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map
 	w.Write([]byte(result))
 }
 
-func Run(params *InitParams) *http.ServeMux {
-	if params == nil {
-		params = &InitParams{
-			IsDevMode: true,
-			EsbuildOpts: api.BuildOptions{
-				EntryPoints: []string{"./frontend/src/index.ts"},
-			},
-			AutoRegisterTemplateRoutes: true,
-			AuthGuard:                  nil,
-		}
-	}
+func Run(params *internal.InitParams) *http.ServeMux {
+	finalParams := internal.MergeDefaults(params)
 
 	_, filename, _, ok := runtime.Caller(1)
 	if !ok {
@@ -66,8 +60,8 @@ func Run(params *InitParams) *http.ServeMux {
 		log.Printf("No .env file loaded: %v", err)
 	}
 
-	devMode := params.IsDevMode
-	if !params.IsDevMode {
+	devMode := finalParams.IsDevMode
+	if !finalParams.IsDevMode {
 		flag.BoolVar(&devMode, "dev", false, "Run in development mode")
 		flag.Parse()
 	}
@@ -75,13 +69,13 @@ func Run(params *InitParams) *http.ServeMux {
 	fmt.Println("Running in dev mode:", devMode)
 
 	if devMode {
-		esbuild.InitDevMode(params.EsbuildOpts)
+		esbuild.InitDevMode(finalParams.EsbuildOpts)
 		print("Dev mode initialized \n")
 	}
 
 	mux := http.NewServeMux()
 
-	if params.AutoRegisterTemplateRoutes {
+	if finalParams.AutoRegisterTemplateRoutes {
 		templateDir := "templates"
 		err := filepath.Walk(templateDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -103,8 +97,8 @@ func Run(params *InitParams) *http.ServeMux {
 					)
 				}
 
-				if params.AuthGuard != nil && strings.Contains(tmplName, ".auth.") {
-					mux.Handle(routePath, params.AuthGuard(http.HandlerFunc(handlerFunc)))
+				if finalParams.AuthGuard != nil && strings.Contains(tmplName, ".auth.") {
+					mux.Handle(routePath, finalParams.AuthGuard(http.HandlerFunc(handlerFunc)))
 				} else {
 					mux.HandleFunc(routePath, handlerFunc)
 				}
@@ -133,6 +127,6 @@ func Run(params *InitParams) *http.ServeMux {
 	return mux
 }
 
-func Build(params InitParams) api.BuildResult {
+func Build(params internal.InitParams) api.BuildResult {
 	return esbuild.Build(params.EsbuildOpts)
 }
