@@ -12,29 +12,21 @@ import (
 
 	"github.com/evanw/esbuild/pkg/api"
 
-	"framework/internal"
-
 	"github.com/bencbradshaw/framework/env"
 	"github.com/bencbradshaw/framework/esbuild"
 	"github.com/bencbradshaw/framework/events"
+	"github.com/bencbradshaw/framework/internal"
 	"github.com/bencbradshaw/framework/templating"
 )
 
 type RouterSetupFunc struct {
 	BasePath string
-	Handler  func(mux *http.ServeMux, db interface{}, devMode bool) http.Handler
+	Handler  func(mux *http.ServeMux, db any, devMode bool) http.Handler
 }
 
-// type InitParams struct {
-// 	Mux                        *http.ServeMux
-// 	IsDevMode                  bool
-// 	EsbuildOpts                api.BuildOptions
-// 	AutoRegisterTemplateRoutes bool
-// 	AuthGuard                  func(http.Handler) http.Handler
-// 	TemplateDir                string
-// }
+type InitParams = internal.InitParams
 
-func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]interface{}) {
+func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map[string]any) {
 	fmt.Println("Rendering template: ", templateName)
 
 	result, err := templating.HtmlRender(templateName, data)
@@ -46,7 +38,7 @@ func RenderWithHtmlResponse(w http.ResponseWriter, templateName string, data map
 	w.Write([]byte(result))
 }
 
-func Run(params *internal.InitParams) *http.ServeMux {
+func Run(params InitParams) *http.ServeMux {
 	finalParams := internal.MergeDefaults(params)
 
 	_, filename, _, ok := runtime.Caller(1)
@@ -127,6 +119,6 @@ func Run(params *internal.InitParams) *http.ServeMux {
 	return mux
 }
 
-func Build(params internal.InitParams) api.BuildResult {
+func Build(params InitParams) api.BuildResult {
 	return esbuild.Build(params.EsbuildOpts)
 }
