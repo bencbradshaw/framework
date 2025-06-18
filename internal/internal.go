@@ -14,6 +14,7 @@ type InitParams struct {
 	AutoRegisterTemplateRoutes bool
 	AuthGuard                  func(http.Handler) http.Handler
 	TemplateDir                string
+	StaticDir                  string
 }
 
 func MergeDefaults(providedInitParams InitParams) InitParams {
@@ -26,6 +27,7 @@ func MergeDefaults(providedInitParams InitParams) InitParams {
 		AutoRegisterTemplateRoutes: true,
 		AuthGuard:                  nil,
 		TemplateDir:                "templates",
+		StaticDir:                  "static",
 	}
 	if !providedInitParams.IsDevMode {
 		initParams.IsDevMode = providedInitParams.IsDevMode
@@ -41,6 +43,9 @@ func MergeDefaults(providedInitParams InitParams) InitParams {
 	}
 	if providedInitParams.TemplateDir != "templates" {
 		initParams.TemplateDir = providedInitParams.TemplateDir
+	}
+	if providedInitParams.StaticDir != "static" {
+		initParams.StaticDir = providedInitParams.StaticDir
 	}
 	return initParams
 
