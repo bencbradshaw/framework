@@ -114,7 +114,7 @@ func Run(params InitParams) *http.ServeMux {
 
 	mux.HandleFunc("/events", events.EventStream)
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(currentDir, "static")))))
 
 	return mux
 }
