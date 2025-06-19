@@ -114,23 +114,11 @@ func Run(params InitParams) *http.ServeMux {
 
 	mux.HandleFunc("/events", events.EventStream)
 
-	staticDir := finalParams.StaticDir
 	mux.Handle("/static/", http.StripPrefix("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Static directory from params: %s", staticDir)
-		files, err := os.ReadDir(staticDir)
-		if staticDir == "" {
-			staticDir = filepath.Join(currentDir, "static")
-		}
-		if err != nil {
-			log.Printf("Could not read static dir: %v", err)
-		} else {
-			for _, f := range files {
-				log.Printf("Static dir contains: %s", f.Name())
-			}
-		}
-		requestedPath := filepath.Join(staticDir, r.URL.Path)
-		log.Printf("Static file requested: %s", requestedPath)
-		http.FileServer(http.Dir(staticDir)).ServeHTTP(w, r)
+		log.Printf("Static file requested (after prefix strip): %s", r.URL.Path)
+		serveDir := filepath.Join(currentDir, finalParams.StaticDir)
+		log.Printf("Serving from directory: %s", serveDir)
+		http.FileServer(http.Dir(serveDir)).ServeHTTP(w, r)
 	})))
 	return mux
 }
