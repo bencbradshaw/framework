@@ -114,12 +114,8 @@ func Run(params InitParams) *http.ServeMux {
 
 	mux.HandleFunc("/events", events.EventStream)
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Static file requested (after prefix strip): %s", r.URL.Path)
-		serveDir := filepath.Join(currentDir, finalParams.StaticDir)
-		log.Printf("Serving from directory: %s", serveDir)
-		http.FileServer(http.Dir(serveDir)).ServeHTTP(w, r)
-	})))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(currentDir, "static")))))
+
 	return mux
 }
 
