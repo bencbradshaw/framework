@@ -19,6 +19,8 @@ _A minimal yet powerful web framework with builtin support for ssr html pages an
 
 ## 🚦 Quickstart
 
+Check out the [framework-template starter repository](https://github.com/bencbradshaw/framework-template) to quickly scaffold your project structure and get started.
+
 ### 1. Project Structure
 
 ```shell
