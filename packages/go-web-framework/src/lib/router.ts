@@ -49,11 +49,17 @@ export class Router {
   }
 
   private handleRouteChange(path: string) {
-    const route = this.routes.find((route) => route.path === path);
+    const url = new URL(path, window.location.origin);
+    const pathname = url.pathname;
+    
+    const route = this.routes.find((route) => {
+      return route.path === pathname;
+    });
+    
     if (route) {
       route
         .importer()
-        .then((module) => {
+        .then(() => {
           while (this.rootElement?.shadowRoot?.firstChild) {
             this.rootElement.shadowRoot.removeChild(this.rootElement.shadowRoot.firstChild);
           }
@@ -66,7 +72,7 @@ export class Router {
           console.error('Error importing module:', error);
         });
     } else {
-      console.warn('No route found for path:', path);
+      console.warn('No route found for path:', pathname);
     }
   }
 }
