@@ -9,7 +9,13 @@ type Route = {
 
 /**
  * A client-side router for single-page applications with support for dynamic route parameters.
- * Handles browser navigation, link clicks, and dynamic component loading.
+ * Handles browser navigation (back/forward), link click interception, and dynamic component loading.
+ *
+ * Notes:
+ * - `baseUrl` is prepended when registering routes via `addRoute()`.
+ * - `navigate()` expects a full path (including the baseUrl) and uses `history.pushState()`.
+ * - The router intercepts `<a href="...">` clicks by default; add `router-ignore` to opt out.
+ * - Call `destroy()` when the router is no longer needed to remove global event listeners.
  *
  * @example
  * ```typescript
@@ -73,8 +79,18 @@ export class Router {
    */
   constructor(rootElement: HTMLElement) {
     this.rootElement = rootElement;
-    window.addEventListener('popstate', this.handlePopState.bind(this));
-    document.addEventListener('click', this.handleLinkClick.bind(this));
+
+    window.addEventListener('popstate', this.handlePopState);
+    document.addEventListener('click', this.handleLinkClick);
+  }
+
+  /**
+   * Removes global event listeners added by the router.
+   * Call this to avoid leaking handlers when creating/destroying routers.
+   */
+  public destroy(): void {
+    window.removeEventListener('popstate', this.handlePopState);
+    document.removeEventListener('click', this.handleLinkClick);
   }
 
   /**
@@ -105,7 +121,7 @@ export class Router {
 
   /**
    * Programmatically navigates to a new path and updates browser history.
-   * @param path - Full path to navigate to (including baseUrl if applicable)
+   * @param path - Full path to navigate to (including baseUrl)
    * @example
    * ```typescript
    * router.navigate('/app/chat/123');
@@ -116,11 +132,11 @@ export class Router {
     this.handleRouteChange(path);
   }
 
-  private handlePopState() {
+  private handlePopState = (): void => {
     this.handleRouteChange(window.location.pathname);
-  }
+  };
 
-  private handleLinkClick(event: MouseEvent) {
+  private handleLinkClick = (event: MouseEvent): void => {
     const composedPath0 = event.composedPath()[0] as HTMLElement;
     const composedPath0Parent = composedPath0.parentElement;
     const firstA =
@@ -134,7 +150,7 @@ export class Router {
       const path = firstA.getAttribute('href')!;
       this.navigate(path);
     }
-  }
+  };
 
   private matchRoute(pathname: string): { route: Route; params: Record<string, string> } | null {
     for (const route of this.routes) {
