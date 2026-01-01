@@ -1,28 +1,116 @@
 type Route = {
   path: string;
-  component: string;
-  importer: () => Promise<any>;
+  component?: string;
+  importer?: () => Promise<any>;
+  redirect?: string;
   title?: string;
   params?: Record<string, string>;
 };
 
+/**
+ * A client-side router for single-page applications with support for dynamic route parameters.
+ * Handles browser navigation, link clicks, and dynamic component loading.
+ *
+ * @example
+ * ```typescript
+ * const router = new Router(document.getElementById('app'));
+ * router.baseUrl = '/app';
+ *
+ * // Add exact match route
+ * router.addRoute({
+ *   path: '/',
+ *   component: 'home-page',
+ *   importer: () => import('./pages/home.js'),
+ *   title: 'Home'
+ * });
+ *
+ * // Add parameterized route
+ * router.addRoute({
+ *   path: '/chat/:id',
+ *   component: 'chat-page',
+ *   importer: () => import('./pages/chat.js'),
+ *   title: 'Chat'
+ * });
+ *
+ * // Navigate programmatically
+ * router.navigate('/app/chat/123');
+ *
+ * // Access route params
+ * const chatId = router.activeRoute.params?.id; // "123"
+ *
+ * // Add catch-all route with redirect (add this last)
+ * router.addRoute({
+ *   path: '*',
+ *   redirect: '/app/'
+ * });
+ *
+ * // Or render a not-found component
+ * router.addRoute({
+ *   path: '*',
+ *   component: 'not-found-page',
+ *   importer: () => import('./pages/not-found.js'),
+ *   title: 'Not Found'
+ * });
+ * ```
+ */
 export class Router {
   private routes: Route[] = [];
   private rootElement: HTMLElement;
+
+  /**
+   * Base URL prefix for all routes. Set this before adding routes.
+   */
   public baseUrl: string;
+
+  /**
+   * Currently active route with matched parameters.
+   */
   public activeRoute: Route;
 
+  /**
+   * Creates a new Router instance.
+   * @param rootElement - The HTML element that will contain routed components
+   */
   constructor(rootElement: HTMLElement) {
     this.rootElement = rootElement;
     window.addEventListener('popstate', this.handlePopState.bind(this));
     document.addEventListener('click', this.handleLinkClick.bind(this));
   }
 
+  /**
+   * Registers a new route. Supports dynamic parameters using `:param` syntax.
+   * Routes can either render a component or redirect to another path.
+   * @param route - Route configuration object
+   * @example
+   * ```typescript
+   * // Render a component
+   * router.addRoute({
+   *   path: '/user/:id/post/:postId',
+   *   component: 'post-view',
+   *   importer: () => import('./post.js'),
+   *   title: 'Post'
+   * });
+   *
+   * // Redirect to another path
+   * router.addRoute({
+   *   path: '/old-path',
+   *   redirect: '/app/new-path'
+   * });
+   * ```
+   */
   public addRoute(route: Route) {
     const fullPath = this.baseUrl + route.path;
     this.routes.push({ ...route, path: fullPath });
   }
 
+  /**
+   * Programmatically navigates to a new path and updates browser history.
+   * @param path - Full path to navigate to (including baseUrl if applicable)
+   * @example
+   * ```typescript
+   * router.navigate('/app/chat/123');
+   * ```
+   */
   public navigate(path: string) {
     history.pushState({}, '', path);
     this.handleRouteChange(path);
@@ -48,29 +136,62 @@ export class Router {
     }
   }
 
+  private matchRoute(pathname: string): { route: Route; params: Record<string, string> } | null {
+    for (const route of this.routes) {
+      // Handle wildcard catch-all
+      const pathWithoutBase = route.path.replace(this.baseUrl, '');
+      if (pathWithoutBase === '*' || pathWithoutBase === '/*' || route.path === '*' || route.path.endsWith('/*')) {
+        return { route, params: {} };
+      }
+
+      const pattern = route.path.replace(/:[^/]+/g, '([^/]+)');
+      const regex = new RegExp(`^${pattern}$`);
+      const match = pathname.match(regex);
+
+      if (match) {
+        const paramNames = (route.path.match(/:[^/]+/g) || []).map((p) => p.slice(1));
+        const params: Record<string, string> = {};
+        paramNames.forEach((name, i) => {
+          params[name] = match[i + 1];
+        });
+        return { route, params };
+      }
+    }
+    return null;
+  }
+
   private handleRouteChange(path: string) {
     const url = new URL(path, window.location.origin);
     const pathname = url.pathname;
-    
-    const route = this.routes.find((route) => {
-      return route.path === pathname;
-    });
-    
-    if (route) {
-      route
-        .importer()
-        .then(() => {
-          while (this.rootElement?.shadowRoot?.firstChild) {
-            this.rootElement.shadowRoot.removeChild(this.rootElement.shadowRoot.firstChild);
-          }
-          const theInnerElement = document.createElement(route.component);
-          this.rootElement.shadowRoot.appendChild(theInnerElement);
-          document.title = route.title ?? route.component;
-          this.activeRoute = route;
-        })
-        .catch((error) => {
-          console.error('Error importing module:', error);
-        });
+
+    const match = this.matchRoute(pathname);
+
+    if (match) {
+      const { route, params } = match;
+
+      // Handle redirect
+      if (route.redirect) {
+        this.navigate(route.redirect);
+        return;
+      }
+
+      // Render component
+      if (route.importer && route.component) {
+        route
+          .importer()
+          .then(() => {
+            while (this.rootElement?.shadowRoot?.firstChild) {
+              this.rootElement.shadowRoot.removeChild(this.rootElement.shadowRoot.firstChild);
+            }
+            const theInnerElement = document.createElement(route.component!);
+            this.rootElement.shadowRoot.appendChild(theInnerElement);
+            document.title = route.title ?? route.component!;
+            this.activeRoute = { ...route, params };
+          })
+          .catch((error) => {
+            console.error('Error importing module:', error);
+          });
+      }
     } else {
       console.warn('No route found for path:', pathname);
     }
