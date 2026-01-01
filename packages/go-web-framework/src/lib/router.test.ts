@@ -292,6 +292,21 @@ describe('Router', () => {
     expect(navigateSpy).toHaveBeenCalledWith('/app/intermediate');
   });
 
+  it('prevents redirect loops', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    router.addRoute({
+      path: '/loop',
+      redirect: '/app/loop'
+    });
+
+    // This used to recurse infinitely and overflow the stack.
+    router.navigate('/app/loop');
+
+    expect(warnSpy).toHaveBeenCalledWith('Redirect loop detected for path:', '/app/loop');
+    warnSpy.mockRestore();
+  });
+
   it('handles browser back/forward navigation', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 

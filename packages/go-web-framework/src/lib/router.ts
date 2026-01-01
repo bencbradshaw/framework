@@ -187,6 +187,11 @@ export class Router {
 
       // Handle redirect
       if (route.redirect) {
+        const redirectUrl = new URL(route.redirect, window.location.origin);
+        if (redirectUrl.href === url.href) {
+          console.warn('Redirect loop detected for path:', url.pathname);
+          return;
+        }
         this.navigate(route.redirect);
         return;
       }
